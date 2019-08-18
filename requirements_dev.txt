@@ -7,6 +7,10 @@ tox==3.5.2
 coverage==4.5.1
 Sphinx==1.8.1
 twine==1.12.1
+sympy==1.3
+numpy==1.15.4
+matplotlib==3.0.2
+FMPy==0.2.12
 
 pytest==3.8.2
 pytest-runner==4.2

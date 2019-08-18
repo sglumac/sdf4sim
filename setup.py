@@ -25,8 +25,11 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
-    description="A package which demostrates the use of SDF as the model of computation for a non-iterative co-simulation.",
-    install_requires=[ ],
+    description=' '.join([
+        "A package which demostrates the use of SDF as the model",
+        "of computation for a non-iterative co-simulation."
+    ]),
+    install_requires=[],
     license="MIT license",
     long_description=readme + '\n\n' + history,
     include_package_data=True,
@@ -39,7 +42,7 @@ setup(
     test_suite='tests',
     tests_require=[
         'pytest',
-	],
+    ],
     url='https://github.com/sglumac/sdf4sim',
     version='0.1.0',
     zip_safe=False,
