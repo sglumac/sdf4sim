@@ -3,7 +3,11 @@
 from fractions import Fraction
 import numpy as np  # pylint: disable=import-error
 import matplotlib.pyplot as plt  # pylint: disable=import-error
+from matplotlib import rc  # pylint: disable=import-error
 from sdf4sim import cs, sdf
+
+
+rc('text', usetex=True)
 
 
 def controller_parameters(K, T1, Ts):
@@ -80,14 +84,14 @@ def analytic_solution(K, T1, Ts):
     return y1, y2
 
 
-def gauss_seidel(K, T1, Ts) -> cs.Cosimulation:
+def gauss_seidel(K, T1, Ts, inverse=False, init=False) -> cs.Cosimulation:
     """The SDF representation of a co-simulation master"""
     h = Fraction(3, 4)
-    y1, _ = analytic_solution(K, T1, Ts)
+    y1, y2 = analytic_solution(K, T1, Ts)
     step_sizes = {'PI': h, 'PT2': h}
     tokens = {
-        sdf.Dst('PT2', 'u'): [y1(0)],
-        sdf.Dst('PI', 'u'): [],
+        sdf.Dst('PT2', 'u'): [] if inverse else [y1(h if init else 0)],
+        sdf.Dst('PI', 'u'): [y2(h if init else 0)] if inverse else [],
     }
     return cs_network(K, T1, Ts), step_sizes, rate_converters(), tokens
 
@@ -98,8 +102,8 @@ def gauss_jacobi(K, T1, Ts) -> cs.Cosimulation:
     y1, y2 = analytic_solution(K, T1, Ts)
     step_sizes = {'PI': h, 'PT2': h}
     tokens = {
-        sdf.Dst('PT2', 'u'): [y1(0)],
-        sdf.Dst('PI', 'u'): [y2(0)],
+        sdf.Dst('PT2', 'u'): [y1(0.5)],
+        sdf.Dst('PI', 'u'): [y2(0.5)],
     }
     return cs_network(K, T1, Ts), step_sizes, rate_converters(), tokens
 
@@ -107,7 +111,7 @@ def gauss_jacobi(K, T1, Ts) -> cs.Cosimulation:
 def multi_rate(K, T1, Ts) -> cs.Cosimulation:
     """The SDF representation of a co-simulation master"""
     y1, _ = analytic_solution(K, T1, Ts)
-    step_sizes = {'PI': Fraction(1, 2), 'PT2': Fraction(1)}
+    step_sizes = {'PI': Fraction(3, 8), 'PT2': Fraction(3, 4)}
     tokens = {
         sdf.Dst('PT2', 'u'): [y1(0)],
         sdf.Dst('PI', 'u'): [],
@@ -115,30 +119,73 @@ def multi_rate(K, T1, Ts) -> cs.Cosimulation:
     return cs_network(K, T1, Ts), step_sizes, rate_converters(), tokens
 
 
-def _plot_outputs(cosimulation, results, axs, fmt, lbl):
+def _plot_cs_output(cosimulation, results, axs):
     signals = [('PI', 'y'), ('PT2', 'y')]
     for signal, ax in zip(signals, axs):
-        ts, vals = cs.get_signal_samples(cosimulation, results, signal[0], signal[1])
-        ax.plot(ts, vals, fmt, markerfacecolor='None', label=lbl)
+        instance, port = signal
+        ts, vals = cs.get_signal_samples(cosimulation, results, instance, port)
+        ax.stem(ts, vals, label=r'Gauss-Seidel 21 \{$y_{11}(0)$\}',
+                markerfmt='ks', basefmt='C7--', linefmt='C7--')
 
 
-def run(K=1., T1=5., Ts=1., fig_file='cs_compare.png'):
-    """Runs the example"""
-    # end_time = 15 seconds
+def _plot_error_lines(cosimulation, results, y2, ax2):
+    ts, vals = cs.get_signal_samples(cosimulation, results, 'PT2', 'y')
+    for t, val in zip(ts, vals):
+        ax2.plot([t, t], [val, y2(t)], 'r-')
+    t, val = ts[-1], vals[-1]
+    ax2.plot([t, t], [val, y2(t)], 'r-', label=r'$|\gamma_{21}[k_2]- y_{21}(k_2h_2)|$')
+
+
+def _plot_analytic(axs, ys, end_time):
+    anlbls = ['$y_{11}(t)$', '$y_{21}(t)$']
+    for ax, y, anlbl in zip(axs, ys, anlbls):
+        ts = np.linspace(0, end_time)
+        ax.plot(ts, y(ts), 'k--', label=anlbl)
+        ax.set_xlim([0, end_time])
+        ax.legend()
+
+
+def visualise_error_measurement(K=1., T1=5., Ts=1., end_time=20, fig_file=None):
+    """Visualizes the error measurement"""
+    fig, axs = plt.subplots(1, 2, sharex=True)
+    fig.set_size_inches(10, 5)
     ys = analytic_solution(K, T1, Ts)
-    ts = np.linspace(0, 15)
-    _, axs = plt.subplots(2, 1)
-    for y, ax in zip(ys, axs):
-        ax.plot(ts, y(ts), 'r--', label='analytic')
+    cosimulation = gauss_seidel(K, T1, Ts)
+    results = cs.execute(cosimulation, end_time)
+
+    _plot_cs_output(cosimulation, results, axs)
+    _plot_error_lines(cosimulation, results, ys[1], axs[1])
+    _plot_analytic(axs, ys, end_time)
+
+    fig.tight_layout()
+    if not fig_file:
+        plt.show()
+    else:
+        plt.savefig(fig_file)
+
+
+def print_error_measurement(K=1., T1=5., Ts=1., end_time=20):
+    """Runs the example"""
 
     experiments = [
-        (gauss_seidel(K, T1, Ts), 'k', 'Gauss-Seidel'),
-        (gauss_jacobi(K, T1, Ts), 'm', 'Gauss-Jacobi'),
-        (multi_rate(K, T1, Ts), 'g', 'Multi-rate'),
+        (gauss_seidel(K, T1, Ts), 'Gauss-Seidel 21 [y11(0)]'),
+        (gauss_seidel(K, T1, Ts, inverse=True), 'Gauss-Seidel 12 [y21(0)]'),
+        (gauss_seidel(K, T1, Ts, init=True), 'Gauss-Seidel 21 [y11(h)]'),
+        (gauss_jacobi(K, T1, Ts), 'Gauss-Jacobi'),
+        (multi_rate(K, T1, Ts), 'Multi-rate 211'),
     ]
-    for cosimulation, fmt, lbl in experiments:
-        results = cs.execute(cosimulation, 15)
-        _plot_outputs(cosimulation, results, axs, fmt, lbl)
 
-    axs[0].legend()
-    plt.savefig(fig_file)
+    _, y2 = analytic_solution(K, T1, Ts)
+
+    print('Mean absolute error of')
+    for cosimulation, lbl in experiments:
+        results = cs.execute(cosimulation, end_time)
+        ts, vals = cs.get_signal_samples(cosimulation, results, 'PT2', 'y')
+        y2s = np.array(y2(ts))
+        mean_abs_err = np.sum(np.abs(y2s - vals)) / len(vals)
+        print(f' - {lbl} is equal to {mean_abs_err:.4f}')
+
+
+if __name__ == '__main__':
+    print_error_measurement()
+    visualise_error_measurement(fig_file=None)

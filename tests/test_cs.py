@@ -21,5 +21,6 @@ def test_control_cs_valid():
 
 def test_control_loop_example():
     """A test whether the control loop example runs"""
-    example.control.run()
+    example.control.print_error_measurement()
+    example.control.visualise_error_measurement(fig_file='cs_compare.png')
     assert path.isfile('cs_compare.png')
