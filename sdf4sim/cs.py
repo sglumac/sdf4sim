@@ -37,6 +37,9 @@ RateConverters = Dict[Connection, ConverterConstructor]
 Network = Tuple[Slaves, Connections]
 Cosimulation = Tuple[Network, StepSizes, RateConverters, InitialTokens]
 
+TimeStamps = List[Fraction]
+Values = List[Any]
+
 
 def _filter_mvs(mvs, causality):
     return {v.name: v.valueReference for v in mvs if v.causality == causality}
@@ -177,3 +180,24 @@ def time_expired(cosimulation: Cosimulation, end_time: Fraction) -> sdf.Terminat
         return end_time <= len(results[buffer]) * step
 
     return terminate
+
+
+def execute(cosimulation: Cosimulation, end_time: Fraction) -> sdf.Results:
+    """Execution of specified cosimulation until end_time"""
+    termination = time_expired(cosimulation, end_time)
+    sdfg = convert_to_sdf(cosimulation)
+    return sdf.sequential_run(sdfg, termination)
+
+
+def get_signal_samples(
+        cosimulation: Cosimulation, results: sdf.Results,
+        simulator: InstanceName, output: PortLabel
+) -> Tuple[TimeStamps, Values]:
+    """Gets the time and value samples of the signal obtained at the specified port"""
+    _, hs, _, _ = cosimulation
+    h = hs[simulator]
+    _, buffers = convert_to_sdf(cosimulation)
+    buf_lbl = next(buffer.dst for buffer in buffers if buffer.src == sdf.Src(simulator, output))
+    vals = results[buf_lbl]
+    ts = [h * (i + 1) for i in range(len(vals))]
+    return ts, vals

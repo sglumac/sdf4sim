@@ -257,6 +257,13 @@ good-names=i,
            TI,
            KR,
            pi,
+           h,
+           y,
+           ys,
+           ys,
+           ax,
+           hs,
+           ts,
            _
 
 # Include a hint for the correct naming format with invalid-name.

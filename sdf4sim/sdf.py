@@ -178,8 +178,7 @@ def repetition_vector(
     lcm_null = reduce(lcm, denominators)
     integer = list(n * lcm_null / d for n, d in fractional)
     gcd_integer = reduce(gcd, integer)
-    shortest = [x / gcd_integer for x in integer]
-    return shortest
+    return [x / gcd_integer for x in integer]
 
 
 def calculate_schedule(sdf_graph: Graph) -> Schedule:

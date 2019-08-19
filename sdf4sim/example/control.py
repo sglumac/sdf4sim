@@ -83,7 +83,7 @@ def analytic_solution(K, T1, Ts):
 def gauss_seidel(K, T1, Ts) -> cs.Cosimulation:
     """The SDF representation of a co-simulation master"""
     h = Fraction(3, 4)
-    y1, y2 = analytic_solution(K, T1, Ts)
+    y1, _ = analytic_solution(K, T1, Ts)
     step_sizes = {'PI': h, 'PT2': h}
     tokens = {
         sdf.Dst('PT2', 'u'): [y1(0)],
@@ -106,13 +106,20 @@ def gauss_jacobi(K, T1, Ts) -> cs.Cosimulation:
 
 def multi_rate(K, T1, Ts) -> cs.Cosimulation:
     """The SDF representation of a co-simulation master"""
-    y1, y2 = analytic_solution(K, T1, Ts)
+    y1, _ = analytic_solution(K, T1, Ts)
     step_sizes = {'PI': Fraction(1, 2), 'PT2': Fraction(1)}
     tokens = {
         sdf.Dst('PT2', 'u'): [y1(0)],
         sdf.Dst('PI', 'u'): [],
     }
     return cs_network(K, T1, Ts), step_sizes, rate_converters(), tokens
+
+
+def _plot_outputs(cosimulation, results, axs, fmt, lbl):
+    signals = [('PI', 'y'), ('PT2', 'y')]
+    for signal, ax in zip(signals, axs):
+        ts, vals = cs.get_signal_samples(cosimulation, results, signal[0], signal[1])
+        ax.plot(ts, vals, fmt, markerfacecolor='None', label=lbl)
 
 
 def run(K=1., T1=5., Ts=1., fig_file='cs_compare.png'):
@@ -124,22 +131,14 @@ def run(K=1., T1=5., Ts=1., fig_file='cs_compare.png'):
     for y, ax in zip(ys, axs):
         ax.plot(ts, y(ts), 'r--', label='analytic')
 
-    simulators = ['PI', 'PT2']
-    buffers = [sdf.Dst('PI_y_PT2_u', 'u'), sdf.Dst('PT2_y_PI_u', 'u')]
-    fmts = ['ko', 'mo', 'go']
-    lbls = ['Gauss-Seidel', 'Gauss-Jacobi', 'Multi-rate']
-    cosimulations = [
-        gauss_seidel(K, T1, Ts),
-        gauss_jacobi(K, T1, Ts),
-        multi_rate(K, T1, Ts),
+    experiments = [
+        (gauss_seidel(K, T1, Ts), 'k', 'Gauss-Seidel'),
+        (gauss_jacobi(K, T1, Ts), 'm', 'Gauss-Jacobi'),
+        (multi_rate(K, T1, Ts), 'g', 'Multi-rate'),
     ]
-    for cosimulation, fmt, lbl in zip(cosimulations, fmts, lbls):
-        sdfg = cs.convert_to_sdf(cosimulation)
-        hs = [cosimulation[1][sim] for sim in simulators]
-        termination = cs.time_expired(cosimulation, 15)
-        results = sdf.sequential_run(sdfg, termination)
-        for buffer, h, ax in zip(buffers, hs, axs):
-            ts = np.arange(h, 15 + 0.1 * h, h)
-            ax.plot(ts, results[buffer], fmt, markerfacecolor='None', label=lbl)
+    for cosimulation, fmt, lbl in experiments:
+        results = cs.execute(cosimulation, 15)
+        _plot_outputs(cosimulation, results, axs, fmt, lbl)
+
     axs[0].legend()
     plt.savefig(fig_file)
