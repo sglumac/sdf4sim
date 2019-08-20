@@ -1,5 +1,6 @@
 """An example showing a simple control loop"""
 
+from os import path
 from fractions import Fraction
 import numpy as np  # pylint: disable=import-error
 import matplotlib.pyplot as plt  # pylint: disable=import-error
@@ -19,8 +20,11 @@ def controller_parameters(K, T1, Ts):
 
 def slaves(K, T1, Ts) -> cs.Slaves:
     """The FMUs used in the example"""
+    cur_dir = path.dirname(path.abspath(__file__))
+    pi_path = path.join(cur_dir, 'PI.fmu')
+    pt2_path = path.join(cur_dir, 'PT2.fmu')
     KR, TI = controller_parameters(K, T1, Ts)
-    pi = cs.prepare_slave('PI', r'C:\BenchmarkFMUs\PI.fmu', False)
+    pi = cs.prepare_slave('PI', pi_path, False)
     pi.fmu.enterInitializationMode()
     pivrs = [
         next(var.valueReference for var in pi.description.modelVariables
@@ -29,7 +33,7 @@ def slaves(K, T1, Ts) -> cs.Slaves:
     ]
     pi.fmu.setReal(pivrs, [KR, KR / TI])
     pi.fmu.exitInitializationMode()
-    pt2 = cs.prepare_slave('PT2', r'C:\BenchmarkFMUs\PT2.fmu', False)
+    pt2 = cs.prepare_slave('PT2', pt2_path, False)
     pt2.fmu.enterInitializationMode()
     pt2vrs = [
         next(var.valueReference for var in pt2.description.modelVariables
