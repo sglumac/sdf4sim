@@ -24,3 +24,4 @@ def test_control_loop_example():
     example.control.print_error_measurement()
     example.control.visualise_error_measurement(fig_file='cs_compare.pdf')
     assert path.isfile('cs_compare.pdf')
+    example.control.sil_comparison()

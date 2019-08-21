@@ -100,9 +100,8 @@ def gauss_seidel(K, T1, Ts, inverse=False, init=False) -> cs.Cosimulation:
     return cs_network(K, T1, Ts), step_sizes, rate_converters(), tokens
 
 
-def gauss_jacobi(K, T1, Ts) -> cs.Cosimulation:
+def gauss_jacobi(K, T1, Ts, h=Fraction(1, 2)) -> cs.Cosimulation:
     """The SDF representation of a co-simulation master"""
-    h = Fraction(1, 2)
     y1, y2 = analytic_solution(K, T1, Ts)
     step_sizes = {'PI': h, 'PT2': h}
     tokens = {
@@ -190,6 +189,59 @@ def print_error_measurement(K=1., T1=5., Ts=1., end_time=20):
         print(f' - {lbl} is equal to {mean_abs_err:.4f}')
 
 
+class SoftwarePi():
+    """A 'software' implementation of the PI controller"""
+    def __init__(self, KR, TI, h):
+        self._x = 0.
+        self._k_p = KR
+        self._k_i = KR / TI
+        self._h = h
+        self._r = 1.
+
+    @property
+    def inputs(self):
+        """The inputs of the agent"""
+        return {'u': sdf.InputPort(float, 1)}
+
+    @property
+    def outputs(self):
+        """The inputs of the agent"""
+        return {'y': sdf.OutputPort(float, 1)}
+
+    def calculate(self, input_tokens):
+        """The calculation function of the agent"""
+        u = input_tokens['u'][0]
+        self._x -= u * self._h
+        self._x += self._r * self._h
+        e = self._r - u
+        return {'y': [self._k_i * self._x + self._k_p * e]}
+
+
+def sil_comparison(K=1., T1=5., Ts=1.):
+    """The example which shows how to create a SIL simulation from the MIL simulation"""
+    h = Fraction(1, 2)
+    # MIL simulation
+    mil = cs.convert_to_sdf(gauss_jacobi(K, T1, Ts, h))
+    results_mil = sdf.sequential_run(mil, sdf.iterations_expired(40))
+    # SIL simulation
+    sil = cs.convert_to_sdf(gauss_jacobi(K, T1, Ts, h))
+    agents, _ = sil
+    KR, TI = controller_parameters(K, T1, Ts)
+    agents['PI'] = SoftwarePi(KR, TI, h)  # replace M by S
+    results_sil = sdf.sequential_run(sil, sdf.iterations_expired(40))
+
+    # compare results
+    differences = [
+        np.abs(val_mil - val_sil)
+        for buffer in results_mil.keys()
+        for val_mil, val_sil in zip(results_mil[buffer], results_sil[buffer])
+    ]
+    print(f'''The sum of absolute differences in outputs of the MIL and SIl simulation
+    is equal to {np.sum(differences)}
+    ''')
+
+
 if __name__ == '__main__':
     print_error_measurement()
     visualise_error_measurement(fig_file=None)
+    sil_comparison()
