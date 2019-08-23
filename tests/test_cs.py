@@ -25,3 +25,21 @@ def test_control_loop_example():
     example.control.visualise_error_measurement(fig_file='cs_compare.pdf')
     assert path.isfile('cs_compare.pdf')
     example.control.sil_comparison()
+
+
+def test_repetition_vector():
+    """Test to see check the cs repetition vector"""
+    cosimulations = [
+        example.control.gauss_seidel(1., 5., 1.),
+        example.control.gauss_seidel(1., 5., 1., True),
+        example.control.gauss_seidel(1., 5., 1., True, True),
+        example.control.gauss_seidel(1., 5., 1., False, True),
+        example.control.gauss_jacobi(1., 5., 1.),
+        example.control.multi_rate(1., 5., 1.),
+    ]
+    for cosimulation in cosimulations:
+        sdfg = cs.convert_to_sdf(cosimulation)
+        schedule = sdf.calculate_schedule(sdfg)
+        repetitions = cs.repetition_vector(cosimulation)
+        for agent in sdfg[0]:
+            assert sum(agent == executed for executed in schedule) == repetitions[agent]

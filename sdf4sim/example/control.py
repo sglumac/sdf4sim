@@ -48,8 +48,8 @@ def slaves(K, T1, Ts) -> cs.Slaves:
 def cs_network(K, T1, Ts):
     """The network is formed from slaves"""
     connections = {
-        ('PI', 'u'): ('PT2', 'y'),
-        ('PT2', 'u'): ('PI', 'y'),
+        cs.Dst('PI', 'u'): cs.Src('PT2', 'y'),
+        cs.Dst('PT2', 'u'): cs.Src('PI', 'y'),
     }
     return slaves(K, T1, Ts), connections
 
@@ -114,9 +114,10 @@ def gauss_jacobi(K, T1, Ts, h=Fraction(1, 2)) -> cs.Cosimulation:
 def multi_rate(K, T1, Ts) -> cs.Cosimulation:
     """The SDF representation of a co-simulation master"""
     y1, _ = analytic_solution(K, T1, Ts)
-    step_sizes = {'PI': Fraction(3, 8), 'PT2': Fraction(3, 4)}
+    hpi, hpt2 = Fraction(3, 4), Fraction(3, 8)
+    step_sizes = {'PI': hpi, 'PT2': hpt2}
     tokens = {
-        sdf.Dst('PT2', 'u'): [y1(0)],
+        sdf.Dst('PT2', 'u'): [y1(0), y1(hpt2)],
         sdf.Dst('PI', 'u'): [],
     }
     return cs_network(K, T1, Ts), step_sizes, rate_converters(), tokens

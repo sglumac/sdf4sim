@@ -116,7 +116,9 @@ class Zoh(sdf.Agent):
 
     def calculate(self, input_tokens):
         tokens = [
-            input_tokens['u'][tidx * self._consumption // self._production]
+            input_tokens['u'][int(
+                np.ceil((tidx + 1) * self._consumption / float(self._production)) - 1
+            )]
             for tidx in range(self._production)
         ]
         return {'y': tokens}
@@ -201,3 +203,22 @@ def get_signal_samples(
     vals = results[buf_lbl]
     ts = [h * (i + 1) for i in range(len(vals))]
     return ts, vals
+
+
+def repetition_vector(cosimulation: Cosimulation) -> Dict[InstanceName, int]:
+    """The expression for the repetion vector of the non-iterative co-simulation"""
+    network, hs, _, _ = cosimulation
+    _, connections = network
+    inv_hs = {simulator_name: 1 / h for simulator_name, h in hs.items()}
+    for connection in connections.items():
+        dst, src = connection
+        agent_label = '_'.join([src.slave, src.port, dst.slave, dst.port])
+        h_src = hs[src.slave]
+        h_dst = hs[dst.slave]
+        inv_hs[agent_label] = Fraction(
+            h_src.denominator * h_dst.denominator,
+            np.lcm(h_dst.denominator * h_src.numerator, h_src.denominator * h_dst.numerator)
+        )
+    lcm_nums = np.lcm.reduce([inv_h.denominator for inv_h in inv_hs.values()])
+    gcd_dens = np.gcd.reduce([inv_h.numerator for inv_h in inv_hs.values()])
+    return {name: int(lcm_nums * inv_h / gcd_dens) for name, inv_h in inv_hs.items()}
