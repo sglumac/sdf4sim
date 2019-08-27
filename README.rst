@@ -6,7 +6,7 @@ sdf4sim
 .. image:: https://img.shields.io/pypi/v/sdf4sim.svg
         :target: https://pypi.python.org/pypi/sdf4sim
 
-.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/sglumac/sdf4sim?branch=master&svg=true
+.. image:: https://ci.appveyor.com/api/projects/status/github/sglumac/sdf4sim?branch=master&svg=true
     :alt: AppVeyor Build Status
     :target: https://ci.appveyor.com/project/sglumac/sdf4sim
 
