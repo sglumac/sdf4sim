@@ -12,9 +12,10 @@ build: off
 
 install:
 - pip install tox
+- pip install codecov
 
 test_script:
 - tox
 
 after_test:
-- coverage report
+- codecov

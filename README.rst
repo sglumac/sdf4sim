@@ -10,10 +10,13 @@ sdf4sim
     :alt: AppVeyor Build Status
     :target: https://ci.appveyor.com/project/sglumac/sdf4sim
 
+.. image:: https://codecov.io/github/sglumac/sdf4sim/coverage.svg?branch=master
+    :alt: Coverage Status
+    :target: https://codecov.io/github/sglumac/sdf4sim
+
 .. image:: https://readthedocs.org/projects/sdf4sim/badge/?version=latest
         :target: https://sdf4sim.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
-
 
 .. image:: https://pyup.io/repos/github/sglumac/sdf4sim/shield.svg
      :target: https://pyup.io/repos/github/sglumac/sdf4sim/
