@@ -6,8 +6,9 @@ sdf4sim
 .. image:: https://img.shields.io/pypi/v/sdf4sim.svg
         :target: https://pypi.python.org/pypi/sdf4sim
 
-.. image:: https://img.shields.io/travis/sglumac/sdf4sim.svg
-        :target: https://travis-ci.org/sglumac/sdf4sim
+.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/sglumac/sdf4sim?branch=master&svg=true
+    :alt: AppVeyor Build Status
+    :target: https://ci.appveyor.com/project/sglumac/sdf4sim
 
 .. image:: https://readthedocs.org/projects/sdf4sim/badge/?version=latest
         :target: https://sdf4sim.readthedocs.io/en/latest/?badge=latest
