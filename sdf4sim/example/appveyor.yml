@@ -18,4 +18,4 @@ test_script:
 - tox
 
 after_test:
-- codecov
+- codecov --token "2cfbf1b1-71ee-4871-816b-04c97ea2fca9"
