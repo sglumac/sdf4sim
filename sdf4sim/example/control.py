@@ -242,7 +242,12 @@ def sil_comparison(K=1., T1=5., Ts=1.):
     ''')
 
 
-if __name__ == '__main__':
+def main():
+    """The entry point of the example"""
     print_error_measurement()
     visualise_error_measurement(fig_file=None)
     sil_comparison()
+
+
+if __name__ == '__main__':
+    main()
