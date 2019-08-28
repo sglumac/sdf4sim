@@ -44,6 +44,6 @@ setup(
         'pytest',
     ],
     url='https://github.com/sglumac/sdf4sim',
-    version='0.1.0',
+    version='0.1.1',
     zip_safe=False,
 )
