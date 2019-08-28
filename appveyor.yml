@@ -2,8 +2,6 @@ environment:
   matrix:
     - PYTHON: "C:\\Python34"
       PYTHON_ARCH: "64"
-      TCL_LIBRARY: "C:\\Python34\tcl\tcl8.6"
-      TK_LIBRARY: "C:\\Python34\\tcl\\tk8.6"
 
 build: off
 
@@ -16,3 +14,9 @@ test_script:
 
 after_test:
 - codecov --token "2cfbf1b1-71ee-4871-816b-04c97ea2fca9"
+
+on_finish:
+  - ps: |
+    # this uploads nosetests.xml produced in test_script step
+    $wc = New-Object 'System.Net.WebClient'
+    $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\results.xml))
