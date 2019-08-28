@@ -4,7 +4,6 @@ from os import path
 from fractions import Fraction
 import numpy as np  # pylint: disable=import-error
 import matplotlib.pyplot as plt  # pylint: disable=import-error
-from matplotlib import rc  # pylint: disable=import-error
 from sdf4sim import cs, sdf
 
 
