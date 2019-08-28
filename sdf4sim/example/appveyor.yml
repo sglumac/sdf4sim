@@ -3,10 +3,10 @@ environment:
     - PYTHON: "C:\\Python34"
       PYTHON_ARCH: "64"
 
-build: off
+build:
+- pip install -r requirements_dev.txt
 
 install:
-- pip install -r requirements_dev.txt
 - pip install pytest-cov
 - pip install codecov
 
