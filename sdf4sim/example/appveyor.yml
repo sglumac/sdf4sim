@@ -1,21 +1,17 @@
 environment:
   matrix:
     - PYTHON: "C:\\Python34"
-      PYTHON_VERSION: "3.4.2"
       PYTHON_ARCH: "64"
-
-environment:
-  matrix:
-  - TOXENV: py37
 
 build: off
 
 install:
 - pip install -r requirements_dev.txt
+- pip install pytest-cov
 - pip install codecov
 
 test_script:
-- tox
+- pytest --cov=sdf4sim tests
 
 after_test:
 - coverage report
