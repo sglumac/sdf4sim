@@ -13,7 +13,10 @@ test_script:
 - tox
 
 after_test:
-- codecov --token "2cfbf1b1-71ee-4871-816b-04c97ea2fca9"
+
+- ps: |
+    $codecov_cmd = '& codecov --token "2cfbf1b1-71ee-4871-816b-04c97ea2fca9" -X gcov --name ' + $env:TEST_NAME
+    Invoke-Expression $codecov_cmd
 
 on_finish:
   # Upload test results to AppVeyor
