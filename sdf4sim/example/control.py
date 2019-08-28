@@ -161,8 +161,8 @@ def visualise_error_measurement(K=1., T1=5., Ts=1., end_time=20, fig_file=None):
     _plot_error_lines(cosimulation, results, ys[1], axs[1])
     _plot_analytic(axs, ys, end_time)
 
+    fig.tight_layout()
     if not fig_file:
-        fig.tight_layout()
         plt.show()
     else:
         plt.savefig(fig_file)
