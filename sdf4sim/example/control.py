@@ -8,9 +8,6 @@ from matplotlib import rc  # pylint: disable=import-error
 from sdf4sim import cs, sdf
 
 
-rc('text', usetex=True)
-
-
 def controller_parameters(K, T1, Ts):
     """The controller parameters used"""
     TI = T1
