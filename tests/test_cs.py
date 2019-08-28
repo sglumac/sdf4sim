@@ -22,6 +22,8 @@ def test_control_cs_valid():
 def test_control_loop_example():
     """A test whether the control loop example runs"""
     example.control.print_error_measurement()
+    import matplotlib
+    matplotlib.use('pdf')
     example.control.visualise_error_measurement(fig_file='cs_compare.pdf')
     assert path.isfile('cs_compare.pdf')
     example.control.sil_comparison()
