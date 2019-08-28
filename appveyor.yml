@@ -7,6 +7,7 @@ build: off
 
 install:
 - pip install tox
+- pip install twine
 - pip install codecov
 
 test_script:
@@ -14,6 +15,10 @@ test_script:
 
 after_test:
 - codecov --token "2cfbf1b1-71ee-4871-816b-04c97ea2fca9"
+
+on_success:
+  - python setup.py sdist
+  - twine upload dist/*
 
 on_finish:
   # Upload test results to AppVeyor
