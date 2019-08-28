@@ -16,7 +16,8 @@ after_test:
 - codecov --token "2cfbf1b1-71ee-4871-816b-04c97ea2fca9"
 
 on_finish:
+  # Upload test results to AppVeyor
   - ps: |
-    # this uploads nosetests.xml produced in test_script step
-    $wc = New-Object 'System.Net.WebClient'
-    $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\results.xml))
+      # this uploads nosetests.xml produced in test_script step
+      $wc = New-Object 'System.Net.WebClient'
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\nosetests.xml))
