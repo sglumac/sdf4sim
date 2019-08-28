@@ -1,0 +1,16 @@
+environment:
+  matrix:
+    - PYTHON: "C:\\Python34"
+      PYTHON_ARCH: "64"
+
+build: off
+
+install:
+- pip install tox
+- pip install codecov
+
+test_script:
+- tox
+
+after_test:
+- codecov --token "2cfbf1b1-71ee-4871-816b-04c97ea2fca9"
