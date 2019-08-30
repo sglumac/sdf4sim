@@ -37,7 +37,7 @@ setup(
     include_package_data=True,
     keywords='sdf4sim',
     name='sdf4sim',
-    packages=find_packages(include=['sdf4sim']),
+    packages=find_packages(),
     setup_requires=[
         'pytest-runner',
     ],
