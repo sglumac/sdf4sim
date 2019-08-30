@@ -125,7 +125,7 @@ def _plot_cs_output(cosimulation, results, axs):
         instance, port = signal
         ts, vals = cs.get_signal_samples(cosimulation, results, instance, port)
         ax.stem(ts, vals, label=r'Gauss-Seidel 21 \{$y_{11}(0)$\}',
-                markerfmt='ks', basefmt='C7--', linefmt='C7--')
+                markerfmt='ks', basefmt='C7--', linefmt='C7--', use_line_collection=True)
 
 
 def _plot_error_lines(cosimulation, results, y2, ax2):

@@ -27,8 +27,11 @@ sdf4sim
 A package which demostrates the use of SDF as the model of computation for a non-iterative co-simulation.
 
 Tested with Python 3.7 64 bit
-pip install sdf4sim
-python -c "import sdf4sim; sdf4sim.example.control.main()"
+
+.. code-block:: console
+
+    pip install sdf4sim
+    python -c "import sdf4sim; sdf4sim.example.control.main()"
 
 
 * Free software: MIT license
