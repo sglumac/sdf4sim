@@ -27,24 +27,19 @@ sdf4sim
 A package which demostrates the use of SDF as the model of computation for a non-iterative co-simulation.
 
 Tested with Python 3.7 64 bit
+
 .. code-block:: console
-    pip install sdf4sim
-    python -c "import sdf4sim; sdf4sim.example.control.main()"
+
+   pip install sdf4sim
+   python -c "import sdf4sim; sdf4sim.example.control.main()"
 
 
 * Free software: MIT license
 * Documentation: https://sdf4sim.readthedocs.io.
 
 
-Features
---------
+..
+    Features
+    --------
 
-* TODO
-
-Credits
--------
-
-This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
-
-.. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+    * TODO
