@@ -6,6 +6,6 @@ __author__ = """Slaven Glumac"""
 __email__ = 'slaven.glumac@gmail.com'
 __version__ = '0.6.0'
 
-from . import sdf, cs, example
+from . import sdf, cs, example, autoconfig
 
-__all__ = ['sdf', 'cs', 'example']
+__all__ = ['sdf', 'cs', 'example', 'autoconfig']

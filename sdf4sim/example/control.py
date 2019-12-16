@@ -14,31 +14,40 @@ def controller_parameters(K, T1, Ts):
     return KR, TI
 
 
-def slaves(K, T1, Ts) -> cs.Slaves:
+def slaves(K, T1, Ts) -> cs.SlaveContructors:
     """The FMUs used in the example"""
     cur_dir = path.dirname(path.abspath(__file__))
-    pi_path = path.join(cur_dir, 'PI.fmu')
-    pt2_path = path.join(cur_dir, 'PT2.fmu')
-    KR, TI = controller_parameters(K, T1, Ts)
-    pi = cs.prepare_slave('PI', pi_path, False)
-    pi.fmu.enterInitializationMode()
-    pivrs = [
-        next(var.valueReference for var in pi.description.modelVariables
-             if var.name == name)
-        for name in ["KP", "KI"]
-    ]
-    pi.fmu.setReal(pivrs, [KR, KR / TI])
-    pi.fmu.exitInitializationMode()
-    pt2 = cs.prepare_slave('PT2', pt2_path, False)
-    pt2.fmu.enterInitializationMode()
-    pt2vrs = [
-        next(var.valueReference for var in pt2.description.modelVariables
-             if var.name == name)
-        for name in ["K", "T1", "Ts"]
-    ]
-    pt2.fmu.setReal(pt2vrs, [K, T1, Ts])
-    pt2.fmu.exitInitializationMode()
-    return [pi, pt2]
+
+    def construct_pi():
+        nonlocal cur_dir, K, T1, Ts
+        pi_path = path.join(cur_dir, 'PI.fmu')
+        KR, TI = controller_parameters(K, T1, Ts)
+        pi = cs.prepare_slave('PI', pi_path)
+        pi.fmu.enterInitializationMode()
+        pivrs = [
+            next(var.valueReference for var in pi.description.modelVariables
+                 if var.name == name)
+            for name in ["KP", "KI"]
+        ]
+        pi.fmu.setReal(pivrs, [KR, KR / TI])
+        pi.fmu.exitInitializationMode()
+        return pi
+
+    def construct_pt2():
+        nonlocal cur_dir, K, T1, Ts
+        pt2_path = path.join(cur_dir, 'PT2.fmu')
+        pt2 = cs.prepare_slave('PT2', pt2_path)
+        pt2.fmu.enterInitializationMode()
+        pt2vrs = [
+            next(var.valueReference for var in pt2.description.modelVariables
+                 if var.name == name)
+            for name in ["K", "T1", "Ts"]
+        ]
+        pt2.fmu.setReal(pt2vrs, [K, T1, Ts])
+        pt2.fmu.exitInitializationMode()
+        return pt2
+
+    return {'PI': construct_pi, 'PT2': construct_pt2}
 
 
 def cs_network(K, T1, Ts):
@@ -119,7 +128,8 @@ def multi_rate(K, T1, Ts) -> cs.Cosimulation:
     return cs_network(K, T1, Ts), step_sizes, rate_converters(), tokens
 
 
-def _plot_cs_output(cosimulation, results, axs):
+def plot_cs_output(cosimulation, results, axs):
+    """Plots the output of the control co-simulation"""
     signals = [('PI', 'y'), ('PT2', 'y')]
     for signal, ax in zip(signals, axs):
         instance, port = signal
@@ -145,6 +155,15 @@ def _plot_analytic(axs, ys, end_time):
         ax.legend()
 
 
+def show_figure(fig, fig_file):
+    """Utility to show a file"""
+    fig.tight_layout()
+    if not fig_file:
+        plt.show()
+    else:
+        plt.savefig(fig_file)
+
+
 def visualise_error_measurement(K=1., T1=5., Ts=1., end_time=20, fig_file=None):
     """Visualizes the error measurement"""
     fig, axs = plt.subplots(1, 2, sharex=True)
@@ -153,15 +172,11 @@ def visualise_error_measurement(K=1., T1=5., Ts=1., end_time=20, fig_file=None):
     cosimulation = gauss_seidel(K, T1, Ts)
     results = cs.execute(cosimulation, end_time)
 
-    _plot_cs_output(cosimulation, results, axs)
+    plot_cs_output(cosimulation, results, axs)
     _plot_error_lines(cosimulation, results, ys[1], axs[1])
     _plot_analytic(axs, ys, end_time)
 
-    fig.tight_layout()
-    if not fig_file:
-        plt.show()
-    else:
-        plt.savefig(fig_file)
+    show_figure(fig, fig_file)
 
 
 def print_error_measurement(K=1., T1=5., Ts=1., end_time=20):

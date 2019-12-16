@@ -42,6 +42,12 @@ def test_repetition_vector():
     for cosimulation in cosimulations:
         sdfg = cs.convert_to_sdf(cosimulation)
         schedule = sdf.calculate_schedule(sdfg)
-        repetitions = cs.repetition_vector(cosimulation)
+        network, hs, _, _ = cosimulation
+        _, connections = network
+        repetitions = cs.repetition_vector(connections, hs)
         for agent in sdfg[0]:
             assert sum(agent == executed for executed in schedule) == repetitions[agent]
+
+
+def test_defect_calculation():
+    assert False
