@@ -47,7 +47,9 @@ Src = NamedTuple('Src', [
 Buffer = NamedTuple('Buffer', [
     ('src', Src), ('dst', Dst), ('tokens', Deque[Any])
 ])
-Results = Dict[Dst, List[Any]]
+Results = NamedTuple('Results', [
+    ('tokens', Dict[Dst, List[Any]])
+])
 
 Agents = Dict[str, Agent]
 Buffers = List[Buffer]
@@ -237,10 +239,10 @@ def sequential_run(
     """Runs the SDF graph sequentially"""
     agents, buffers = sdf_graph
     schedule = calculate_schedule(sdf_graph)
-    results = {
+    results = Results(tokens={
         buffer.dst: list(buffer.tokens)
         for buffer in buffers
-    }
+    })
     while not terminate(sdf_graph, results):
         for agent_name in schedule:
             agent = agents[agent_name]
@@ -258,7 +260,7 @@ def sequential_run(
             for buffer in get_dst_buffers(agent_name, buffers):
                 tokens = output_tokens[buffer.src.port]
                 buffer.tokens.extend(tokens)
-                results[buffer.dst].extend(tokens)
+                results.tokens[buffer.dst].extend(tokens)
 
     return results
 

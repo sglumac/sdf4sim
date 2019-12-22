@@ -14,11 +14,11 @@ def controller_parameters(K, T1, Ts):
     return KR, TI
 
 
-def slaves(K, T1, Ts) -> cs.SlaveContructors:
+def slaves(K, T1, Ts) -> cs.SimulatorContructors:
     """The FMUs used in the example"""
     cur_dir = path.dirname(path.abspath(__file__))
 
-    def construct_pi():
+    def construct_pi(step_size):
         nonlocal cur_dir, K, T1, Ts
         pi_path = path.join(cur_dir, 'PI.fmu')
         KR, TI = controller_parameters(K, T1, Ts)
@@ -31,9 +31,9 @@ def slaves(K, T1, Ts) -> cs.SlaveContructors:
         ]
         pi.fmu.setReal(pivrs, [KR, KR / TI])
         pi.fmu.exitInitializationMode()
-        return pi
+        return cs.Simulator(pi, step_size)
 
-    def construct_pt2():
+    def construct_pt2(step_size):
         nonlocal cur_dir, K, T1, Ts
         pt2_path = path.join(cur_dir, 'PT2.fmu')
         pt2 = cs.prepare_slave('PT2', pt2_path)
@@ -45,12 +45,12 @@ def slaves(K, T1, Ts) -> cs.SlaveContructors:
         ]
         pt2.fmu.setReal(pt2vrs, [K, T1, Ts])
         pt2.fmu.exitInitializationMode()
-        return pt2
+        return cs.Simulator(pt2, step_size)
 
     return {'PI': construct_pi, 'PT2': construct_pt2}
 
 
-def cs_network(K, T1, Ts):
+def cs_network(K=1., T1=5., Ts=1.):
     """The network is formed from slaves"""
     connections = {
         cs.Dst('PI', 'u'): cs.Src('PT2', 'y'),
@@ -135,7 +135,7 @@ def plot_cs_output(cosimulation, results, axs):
         instance, port = signal
         ts, vals = cs.get_signal_samples(cosimulation, results, instance, port)
         ax.stem(ts, vals, label=r'Gauss-Seidel 21 \{$y_{11}(0)$\}',
-                markerfmt='ks', basefmt='C7--', linefmt='C7--', use_line_collection=True)
+                markerfmt='ks', basefmt='C7--', linefmt='C7--')  # , use_line_collection=True)
 
 
 def _plot_error_lines(cosimulation, results, y2, ax2):
@@ -245,8 +245,8 @@ def sil_comparison(K=1., T1=5., Ts=1.):
     # compare results
     differences = [
         np.abs(val_mil - val_sil)
-        for buffer in results_mil.keys()
-        for val_mil, val_sil in zip(results_mil[buffer], results_sil[buffer])
+        for buffer in results_mil.tokens.keys()
+        for val_mil, val_sil in zip(results_mil.tokens[buffer], results_sil.tokens[buffer])
     ]
     print(f'''The sum of absolute differences in outputs of the MIL and SIl simulation
     is equal to {np.sum(differences)}

@@ -96,7 +96,7 @@ def test_valid_graph():
         return iterations <= 0
 
     results = sdf.sequential_run(sdf_graph, terminate)
-    for tokens in results.values():
+    for tokens in results.tokens.values():
         assert len(tokens) > 5
         for token in tokens:
             assert token == pytest.approx(13)

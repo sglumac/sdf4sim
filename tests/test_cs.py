@@ -1,7 +1,7 @@
 """Tests for sdf4sim.cs"""
 
 import logging
-
+from fractions import Fraction
 from os import path
 from sdf4sim import example, sdf, cs
 
@@ -50,4 +50,15 @@ def test_repetition_vector():
 
 
 def test_defect_calculation():
-    assert False
+    csnet = example.control.cs_network()
+    slaves, connections = csnet
+    step_sizes = {name: Fraction(1, 2) for name in slaves.keys()}
+    make_zoh: cs.ConverterConstructor = cs.Zoh
+    rate_converters = {cs.Connection(src, dst): make_zoh for dst, src in connections.items()}
+    initial_tokens = {sdf.Dst('PI', 'u'): [0.], sdf.Dst('PT2', 'u'): [0.]}
+    cosim = csnet, step_sizes, rate_converters, initial_tokens
+    defect = cs.evaluate(cosim, Fraction(20.))
+    for val in defect.connection.values():
+        assert val < float('inf')
+    for val in defect.output.values():
+        assert val < float('inf')

@@ -3,7 +3,7 @@ The module used to generate a SDF graph as a model of computation
 for a non-iterative co-simulation.
 """
 
-from typing import Tuple, Dict, List, NamedTuple, Any, Callable
+from typing import Tuple, Dict, List, NamedTuple, Any, Callable, Optional, Union
 from fractions import Fraction
 from collections import deque
 import numpy as np  # pylint: disable=import-error
@@ -16,7 +16,6 @@ from . import sdf
 Slave = NamedTuple('Slave', [
     ('description', ModelDescription), ('fmu', FMU2Slave)
 ])
-SlaveContructor = Callable[[], Slave]
 InstanceName = str
 PortLabel = str
 Src = NamedTuple('Src', [
@@ -31,11 +30,12 @@ Connection = NamedTuple('Connection', [
 Connections = Dict[Dst, Src]
 InitialTokens = Dict[sdf.Dst, List[Any]]
 
-SlaveContructors = Dict[InstanceName, SlaveContructor]
+SimulatorContructor = Callable[[Fraction], sdf.Agent]
+SimulatorContructors = Dict[InstanceName, SimulatorContructor]
 StepSizes = Dict[InstanceName, Fraction]
 ConverterConstructor = Callable[[int, int], sdf.Agent]
 RateConverters = Dict[Connection, ConverterConstructor]
-Network = Tuple[SlaveContructors, Connections]
+Network = Tuple[SimulatorContructors, Connections]
 Cosimulation = Tuple[Network, StepSizes, RateConverters, InitialTokens]
 
 TimeStamps = List[Fraction]
@@ -43,6 +43,10 @@ Values = List[Any]
 
 OutputDefect = Dict[Src, float]
 ConnectionDefect = Dict[Dst, float]
+CommunicationDefect = NamedTuple('CommunicationDefect', [
+    ('connection', ConnectionDefect), ('output', OutputDefect)
+])
+IntermediateValues = Dict[InstanceName, Dict[PortLabel, List[float]]]
 
 
 def _filter_mvs(mvs, causality):
@@ -151,7 +155,7 @@ def _construct_rate_converter(h_src, h_dst, construct):
     return construct(consumption, production)
 
 
-def convert_to_sdf(cosimulation: Cosimulation, calculate_defect: bool = False) -> sdf.Graph:
+def convert_to_sdf(cosimulation: Cosimulation) -> sdf.Graph:
     """
     The function which converts a non-iteratove co-simulation to a SDF graph.
     """
@@ -159,8 +163,8 @@ def convert_to_sdf(cosimulation: Cosimulation, calculate_defect: bool = False) -
     agents: sdf.Agents = dict()
     buffers = list()
     # simulators
-    for name, create_slave in network[0].items():
-        agents[name] = Simulator(create_slave(), step_sizes[name], calculate_defect)
+    for name, create_simulator in network[0].items():
+        agents[name] = create_simulator(step_sizes[name])
     # rate converters and buffers
     for connection, construct in rate_converters.items():
         src, dst = connection
@@ -197,7 +201,7 @@ def time_expired(cosimulation: Cosimulation, end_time: Fraction) -> sdf.Terminat
     # pylint: disable=unused-argument
     def terminate(sdf_graph: sdf.Graph, results: sdf.Results) -> bool:
         nonlocal end_time, buffer, step
-        return end_time <= len(results[buffer]) * step
+        return end_time <= len(results.tokens[buffer]) * step
 
     return terminate
 
@@ -218,7 +222,7 @@ def get_signal_samples(
     h = hs[simulator]
     _, buffers = convert_to_sdf(cosimulation)
     buf_lbl = next(buffer.dst for buffer in buffers if buffer.src == sdf.Src(simulator, output))
-    vals = results[buf_lbl]
+    vals = results.tokens[buf_lbl]
     ts = [h * (i + 1) for i in range(len(vals))]
     return ts, vals
 
@@ -245,27 +249,195 @@ def repetition_vector(connections: Connections, hs: StepSizes) -> Dict[InstanceN
     return {name: int(lcm_nums * inv_h / gcd_dens) for name, inv_h in inv_hs.items()}
 
 
-def _calculate_output_defect(results: sdf.Results) -> OutputDefect:
+Interval = NamedTuple('Interval', [
+    ('start', Fraction), ('end', Fraction)
+])
+Derivatives = Union[float, Tuple[float, ...]]
+Sample = NamedTuple('Sample', [
+    ('interval', Interval), ('derivatives', Derivatives)
+])
+Samples = List[Sample]
+OptionalSamples = List[Optional[Sample]]
+
+
+def _get_intervals(samples, step_size) -> List[Interval]:
+    """Calculates intervals for the fixed step size signal"""
+    return [Interval(step_size * i, step_size * (i + 1)) for i in range(len(samples))]
+
+
+def _to_taylor(ders: Derivatives):
+    if isinstance(ders, float):
+        ders = (ders,)
+    return tuple(
+        coef / np.math.factorial(k)
+        for k, coef in enumerate(ders)
+    )
+
+
+def _polyval(poly, t):
+    """Evaluate polynomial in the format given in the code"""
+    return sum(coef * t ** k for k, coef in enumerate(poly))
+
+
+def _polyder(poly):
+    """Derivative of the polynomial"""
+    return tuple((k + 1) * coef for k, coef in enumerate(poly[1:]))
+
+
+def _derivative_shift(
+        ders: Derivatives, t0_old: Fraction, t0_new: Fraction
+) -> Derivatives:
+    """Shifts the Taylor polynomial to the new sample point"""
+    t0_diff = t0_new - t0_old
+
+    def generate_derivatives(taylor):
+        while taylor:
+            yield _polyval(taylor, t0_diff)
+            taylor = _polyder(taylor)
+
+    return tuple(generate_derivatives(_to_taylor(ders)))
+
+
+def _max_abs_derdiff(
+        der1: Derivatives, der2: Derivatives
+) -> float:
+    """Return the maximum absolute difference of two polynomials"""
+    if isinstance(der1, float):
+        if isinstance(der2, float):
+            return abs(der1 - der2)
+
+        return abs(der1 - der2[0])
+
+    if isinstance(der2, float):
+        return abs(der1[0] - der2)
+
+    return abs(der1[0] - der2[0])
+
+
+def _next_sample(from_it) -> Optional[Sample]:
+    """Utility function to make mypy stop complaining"""
+    return next(from_it, None)
+
+
+def _max_abs_difference(x1s, hx1, x2s, hx2) -> float:
+    """Used to calculate the connection defect"""
+    t1s = _get_intervals(x1s, hx1)
+    t2s = _get_intervals(x2s, hx2)
+    iters = [
+        (Sample(t, x) for t, x in zip(t1s, x1s)),
+        (Sample(t, x) for t, x in zip(t2s, x2s))
+    ]
+    max_abs_diff = 0.
+    sampls: OptionalSamples = list(map(_next_sample, iters))
+    while all(sampls):
+        samples: Samples = [
+            sample for sample in sampls if sample
+        ]
+        t_start = max(interval.start for interval, _ in samples)
+        t_end = min(interval.end for interval, _ in samples)
+
+        ders = [_derivative_shift(p, t, t_start) for (t, _), p in samples]
+        max_abs_diff = max(
+            max_abs_diff,
+            _max_abs_derdiff(ders[0], ders[1])
+        )
+        sampls = [
+            sample if sample.interval.end > t_end else _next_sample(it)
+            for it, sample in zip(iters, samples)
+        ]
+    return max_abs_diff
+
+
+def _calculate_output_defect(
+        cosimulation: Cosimulation, intermediate_values: IntermediateValues, results: sdf.Results
+) -> OutputDefect:
     """
     The function calculates the output defect under the assumption
     the co-simulation enables the output defect calculation.
     """
-    return {Src('4', 'a'): 3.}
+    _, connections = cosimulation[0]
+    defect: OutputDefect = dict()
+    for dst, src in connections.items():
+        defect[src] = 0.
+    for dst, src in connections.items():
+        rate_u = sdf.Dst('_'.join([src.slave, src.port, dst.slave, dst.port]), 'u')
+        end_vals = results.tokens[rate_u]
+        half_vals = intermediate_values[src.slave][src.port]
+        for half, end in zip(half_vals, end_vals):
+            defect[src] = max(defect[src], abs((end - half) * 2))
+    return defect
 
 
 def _calculate_connection_defect(
-        connections: Connections, results: sdf.Results
+        cosimulation: Cosimulation, results: sdf.Results
 ) -> ConnectionDefect:
     """The function calculates the connection defect of the co-simulation."""
-    return {Dst('4', 'a'): 3.}
+    (_, connections), step_sizes, _, _ = cosimulation
+
+    defect: ConnectionDefect = dict()
+    for dst, src in connections.items():
+        rate_u = sdf.Dst('_'.join([src.slave, src.port, dst.slave, dst.port]), 'u')
+        out_step = step_sizes[src.slave]
+        out_results = results.tokens[rate_u]
+        in_step = step_sizes[dst.slave]
+        in_results = results.tokens[sdf.Dst(dst.slave, dst.port)]
+        defect[dst] = _max_abs_difference(
+            in_results, in_step, out_results, out_step
+        )
+
+    return defect
 
 
-def evaluate(cosimulation: Cosimulation, end_time: Fraction):
+class _OutputDefectMonitor(sdf.Agent):
+    """Used for output defect calculation"""
+    def __init__(
+            self, create_simulator: SimulatorContructor,
+            step_size: Fraction, intermediate_values
+    ):
+        self._simulator = create_simulator(step_size * Fraction(1, 2))
+        self._intermediate_values = intermediate_values
+        for port in self._simulator.outputs:
+            self._intermediate_values[port] = []
+
+    @property
+    def inputs(self) -> Dict[str, sdf.InputPort]:
+        """Input ports of the agent"""
+        return self._simulator.inputs
+
+    @property
+    def outputs(self) -> Dict[str, sdf.OutputPort]:
+        """Output ports of the agent"""
+        return self._simulator.outputs
+
+    def calculate(self, input_tokens):
+        """The calculation method of the agent"""
+        intermediate_tokens = self._simulator.calculate(input_tokens)
+        for port, values in intermediate_tokens.items():
+            self._intermediate_values[port].extend(values)
+        return self._simulator.calculate(input_tokens)
+
+
+def _sdf_output_monitor(
+        cosimulation: Cosimulation,
+        intermediate_values: IntermediateValues
+) -> sdf.Graph:
+    """Creates the SDF graph which monitors the output defect"""
+    agents, buffers = convert_to_sdf(cosimulation)
+    (simulator_constructors, _), step_sizes, _, _ = cosimulation
+    for name, constructor in simulator_constructors.items():
+        intermediate_values[name] = dict()
+        agents[name] = _OutputDefectMonitor(
+            constructor, step_sizes[name], intermediate_values[name]
+        )
+    return agents, buffers
+
+
+def evaluate(cosimulation: Cosimulation, end_time: Fraction) -> CommunicationDefect:
     """Evaluates the co-simulation and returns the defects"""
     termination = time_expired(cosimulation, end_time)
-    sdfg = convert_to_sdf(cosimulation)
+    intermediate_values: IntermediateValues = dict()
+    sdfg = _sdf_output_monitor(cosimulation, intermediate_values)
     results = sdf.sequential_run(sdfg, termination)
-    output_defect = _calculate_output_defect(results)
-    _, connections = cosimulation[0]
-    connection_defect = _calculate_connection_defect(connections, results)
-    return output_defect, connection_defect
+    output_defect = _calculate_output_defect(cosimulation, intermediate_values, results)
+    connection_defect = _calculate_connection_defect(cosimulation, results)
+    return CommunicationDefect(connection_defect, output_defect)

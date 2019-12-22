@@ -18,15 +18,13 @@ logging.basicConfig(
 
 def test_autoconfig_example():
     """Runs the example and checks if it crashes"""
-    example(max_iter=3, fig_file='autoconfig.pdf')
+    example(max_iter=10, tolerance=0.1, fig_file='autoconfig.pdf')
     assert path.isfile('autoconfig.pdf')
-
 
 
 def test_initial_tokens():
     """Checks the procedure for finding the initial tokens"""
-    K, T1, Ts = (1., 5., 1.)
-    csnet = cs_network(K, T1, Ts)
+    csnet = cs_network()
     initial_step = Fraction(1, 5)
     slaves, connections = csnet
     step_sizes: cs.StepSizes = {

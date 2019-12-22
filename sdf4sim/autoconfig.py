@@ -29,7 +29,7 @@ def _next_tokens(connections, step_sizes, results) -> cs.InitialTokens:
         return [buffer[(i * num_src) // num_dst] for i in range(num_dst)]
 
     next_tokens = {
-        dst: resample_tokens(results[src], rpv[src_slave], rpv[dst.agent])
+        dst: resample_tokens(results.tokens[src], rpv[src_slave], rpv[dst.agent])
         for src_slave, src, dst in dsts
     }
     return next_tokens
