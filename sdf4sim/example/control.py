@@ -183,21 +183,22 @@ def print_error_measurement(K=1., T1=5., Ts=1., end_time=20):
     """Runs the example"""
 
     experiments = [
-        (gauss_seidel(K, T1, Ts), 'Gauss-Seidel 21 [y11(0)]'),
-        (gauss_seidel(K, T1, Ts, inverse=True), 'Gauss-Seidel 12 [y21(0)]'),
-        (gauss_seidel(K, T1, Ts, init=True), 'Gauss-Seidel 21 [y11(h)]'),
-        (gauss_jacobi(K, T1, Ts), 'Gauss-Jacobi'),
-        (multi_rate(K, T1, Ts), 'Multi-rate 211'),
+        (gauss_seidel(K, T1, Ts), 'Gauss-Seidel 21 [y11(0)]', 0.0740),
+        (gauss_seidel(K, T1, Ts, inverse=True), 'Gauss-Seidel 12 [y21(0)]', 0.0890),
+        (gauss_seidel(K, T1, Ts, init=True), 'Gauss-Seidel 21 [y11(h)]', 0.0726),
+        (gauss_jacobi(K, T1, Ts), 'Gauss-Jacobi', 0.0928),
+        (multi_rate(K, T1, Ts), 'Multi-rate 211', 0.0352),
     ]
 
     _, y2 = analytic_solution(K, T1, Ts)
 
     print('Mean absolute error of')
-    for cosimulation, lbl in experiments:
+    for cosimulation, lbl, expected_mae in experiments:
         results = cs.execute(cosimulation, end_time)
         ts, vals = cs.get_signal_samples(cosimulation, results, 'PT2', 'y')
         y2s = np.array(y2(ts))
         mean_abs_err = np.sum(np.abs(y2s - vals)) / len(vals)
+        assert abs(mean_abs_err - expected_mae) < 1e-3, "Backwards compatibility seems to be broken"
         print(f' - {lbl} is equal to {mean_abs_err:.4f}')
 
 
