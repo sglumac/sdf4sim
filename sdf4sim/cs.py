@@ -81,7 +81,7 @@ def prepare_slave(
 
 class Simulator(sdf.Agent):
     """A simulator wraps a co-simulation FMU to an SDF agent"""
-    def __init__(self, slave: Slave, step_size: Fraction, calculate_defect=False):
+    def __init__(self, slave: Slave, step_size: Fraction):
         self._inputs = _filter_mvs(
             slave.description.modelVariables, 'input')
         self._outputs = _filter_mvs(
@@ -89,7 +89,6 @@ class Simulator(sdf.Agent):
         self._time = 0.
         self._slave = slave.fmu
         self._dt = float(step_size)
-        self._calculate_defect = calculate_defect
 
     @property
     def inputs(self):
@@ -108,15 +107,9 @@ class Simulator(sdf.Agent):
         self._slave.setReal(in_vrs, in_vals)
         out_vars = list(self._outputs)
         out_vrs = list(self._outputs[y] for y in out_vars)
-        if self._calculate_defect:
-            dt05 = self._dt / 2
-            self._slave.doStep(self._time, dt05)
-            half_vals = self._slave.getReal(out_vrs)
-            self._slave.doStep(self._time + dt05, dt05)
-            out_vals = [both_vals for both_vals in zip(half_vals, self._slave.getReal(out_vrs))]
-        else:
-            self._slave.doStep(self._time, self._dt)
-            out_vals = [[val] for val in self._slave.getReal(out_vrs)]
+
+        self._slave.doStep(self._time, self._dt)
+        out_vals = [[val] for val in self._slave.getReal(out_vrs)]
 
         self._time += self._dt
         return dict(zip(out_vars, out_vals))
