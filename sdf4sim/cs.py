@@ -253,11 +253,6 @@ Samples = List[Sample]
 OptionalSamples = List[Optional[Sample]]
 
 
-def _get_intervals(samples, step_size) -> List[Interval]:
-    """Calculates intervals for the fixed step size signal"""
-    return [Interval(step_size * i, step_size * (i + 1)) for i in range(len(samples))]
-
-
 def _to_taylor(ders: Derivatives):
     if isinstance(ders, float):
         ders = (ders,)
@@ -275,20 +270,6 @@ def _polyval(poly, t):
 def _polyder(poly):
     """Derivative of the polynomial"""
     return tuple((k + 1) * coef for k, coef in enumerate(poly[1:]))
-
-
-def _derivative_shift(
-        ders: Derivatives, t0_old: Fraction, t0_new: Fraction
-) -> Derivatives:
-    """Shifts the Taylor polynomial to the new sample point"""
-    t0_diff = t0_new - t0_old
-
-    def generate_derivatives(taylor):
-        while taylor:
-            yield _polyval(taylor, t0_diff)
-            taylor = _polyder(taylor)
-
-    return tuple(generate_derivatives(_to_taylor(ders)))
 
 
 def _max_abs_derdiff(
@@ -314,30 +295,20 @@ def _next_sample(from_it) -> Optional[Sample]:
 
 def _max_abs_difference(x1s, hx1, x2s, hx2) -> float:
     """Used to calculate the connection defect"""
-    t1s = _get_intervals(x1s, hx1)
-    t2s = _get_intervals(x2s, hx2)
-    iters = [
-        (Sample(t, x) for t, x in zip(t1s, x1s)),
-        (Sample(t, x) for t, x in zip(t2s, x2s))
-    ]
+    idx1, idx2 = 0, 0
     max_abs_diff = 0.
-    sampls: OptionalSamples = list(map(_next_sample, iters))
-    while all(sampls):
-        samples: Samples = [
-            sample for sample in sampls if sample
-        ]
-        t_start = max(interval.start for interval, _ in samples)
-        t_end = min(interval.end for interval, _ in samples)
-
-        ders = [_derivative_shift(p, t, t_start) for (t, _), p in samples]
+    while idx1 < len(x1s) and idx2 < len(x2s):
         max_abs_diff = max(
             max_abs_diff,
-            _max_abs_derdiff(ders[0], ders[1])
+            abs(x1s[idx1] - x2s[idx2])
         )
-        sampls = [
-            sample if sample.interval.end > t_end else _next_sample(it)
-            for it, sample in zip(iters, samples)
-        ]
+        if (idx1 + 1) * hx1 == (idx2 + 1) * hx2:
+            idx1, idx2 = idx1 + 1, idx2 + 1
+        elif (idx1 + 1) * hx1 < (idx2 + 1) * hx2:
+            idx1 += 1
+        else:
+            idx2 += 1
+
     return max_abs_diff
 
 

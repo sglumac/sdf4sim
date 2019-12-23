@@ -3,6 +3,7 @@
 import logging
 from fractions import Fraction
 from os import path
+from sympy import lcm, gcd  # pylint: disable=import-error
 import pytest
 from sdf4sim import example, sdf, cs
 
@@ -70,9 +71,9 @@ def _semiconnected_ramps(slope1=1., slope2=1.) -> cs.Network:
 
     class _Ramp(cs.Simulator):
         """Used in tests to mock a simulator"""
-        def __init__(self, slope: float, step_size: Fraction):
+        def __init__(self, slope: Fraction, step_size: Fraction):
             self._step_size = step_size
-            self._x = 0.
+            self._x = Fraction(0)
             self._slope = slope
 
         @property
@@ -85,7 +86,7 @@ def _semiconnected_ramps(slope1=1., slope2=1.) -> cs.Network:
 
         def calculate(self, input_tokens):
             self._x += self._slope * self._step_size
-            return {'y': [self._x]}
+            return {'y': [float(self._x)]}
 
     def construct_ramp1(step_size):
         return _Ramp(slope1, step_size)
@@ -102,18 +103,39 @@ def _semiconnected_ramps(slope1=1., slope2=1.) -> cs.Network:
     return slaves, connections
 
 
-def test_defect_calculation():
-    csnet = _semiconnected_ramps()
+def ramp_cosimulation(slope1=2., slope2=3., step1=Fraction(5), step2=Fraction(7)):
+    """Used for testing the defect calculation"""
+    csnet = _semiconnected_ramps(slope1, slope2)
     slaves, connections = csnet
-    step_sizes = {name: Fraction(1) for name in slaves.keys()}
+    step_sizes = {'Ramp1': step1, 'Ramp2': step2}
     make_zoh: cs.ConverterConstructor = cs.Zoh
     rate_converters = {cs.Connection(src, dst): make_zoh for dst, src in connections.items()}
-    initial_tokens = {sdf.Dst('Ramp1', 'u'): [0.], sdf.Dst('Ramp2', 'u'): [0.]}
-    cosim = csnet, step_sizes, rate_converters, initial_tokens
-    defect = cs.evaluate(cosim, Fraction(2.))
+    alpha = Fraction(int(lcm(step1.numerator, step2.numerator)),
+                     int(gcd(step1.denominator, step2.denominator)))
+    num1, num2 = tuple(map(int, [alpha / step for step in (step1, step2)]))
+    initial_tokens = {
+        sdf.Dst('Ramp1', 'u'): [(i - num1 + 1) * step2 * slope2 for i in range(num1)],
+        sdf.Dst('Ramp2', 'u'): [(i - num2 + 1) * step1 * slope1 for i in range(num2)]
+    }
+    return csnet, step_sizes, rate_converters, initial_tokens
 
-    assert defect.connection['Ramp1', 'u'] == pytest.approx(1.)
-    assert defect.connection['Ramp2', 'u'] == pytest.approx(1.)
 
-    assert defect.output['Ramp1', 'y'] == pytest.approx(1.)
-    assert defect.output['Ramp2', 'y'] == pytest.approx(1.)
+def test_defect_calculation():
+    slope1, slope2 = 2., 3.
+    step1, step2 = Fraction(5), Fraction(7)
+    cosim = ramp_cosimulation(slope1, slope2, step1, step2)
+    t_end = Fraction(20)
+    defect = cs.evaluate(cosim, t_end)
+
+    alpha = Fraction(int(lcm(step1.numerator, step2.numerator)),
+                     int(gcd(step1.denominator, step2.denominator)))
+    num1, num2 = tuple(map(int, [alpha / step for step in (step1, step2)]))
+    big = max(num1, num2) + 1
+    small = min(num1, num2) - 1
+    assert defect.connection['Ramp1', 'u'] > small * slope2 * step2
+    assert defect.connection['Ramp1', 'u'] < big * slope2 * step2
+    assert defect.connection['Ramp2', 'u'] > small * slope1 * step1
+    assert defect.connection['Ramp2', 'u'] < big * slope1 * step1
+
+    assert defect.output['Ramp1', 'y'] == pytest.approx(slope1 * step1)
+    assert defect.output['Ramp2', 'y'] == pytest.approx(slope2 * step2)
