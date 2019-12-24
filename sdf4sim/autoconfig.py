@@ -62,32 +62,42 @@ def find_initial_tokens(
     return tokens
 
 
+def _step_reduction_factor(defect: float, tolerance: float) -> Fraction:
+    """Calculate the reduction factor to achieve the desired tolerance"""
+    factor = Fraction(1)
+    while defect * factor > tolerance:
+        factor /= 2
+    return factor
+
+
 def find_configuration(
-        csnet: cs.Network, end_time: Fraction,
-        initial_step: Fraction, tolerance: float, max_iter: int
+        csnet: cs.Network, end_time: Fraction, tolerance: float, max_iter: int
 ) -> cs.Cosimulation:
     """A method for finding a working configuration for the given co-simulation network"""
     slaves, connections = csnet
-    step_sizes: cs.StepSizes = {name: initial_step for name in slaves.keys()}
+    step_sizes: cs.StepSizes = {name: end_time / 10 for name in slaves.keys()}
     make_zoh: cs.ConverterConstructor = cs.Zoh
     rate_converters = {cs.Connection(src, dst): make_zoh for dst, src in connections.items()}
 
-    tolerance_satisfied = False
     num_iter = 0
     while True:
         initial_tokens = find_initial_tokens(csnet, step_sizes, rate_converters, tolerance)
-        connection_defect, output_defect = cs.evaluate(
-            (csnet, step_sizes, rate_converters, initial_tokens),
-            end_time
-        )
-        tolerance_satisfied = all(defect < tolerance for defect in connection_defect.values())
-        tolerance_satisfied = tolerance_satisfied and all(
-            defect < tolerance for defect in output_defect.values())
+        cosim = csnet, step_sizes, rate_converters, initial_tokens
+        defect = cs.evaluate(cosim, end_time)
+        simulator_defects = {
+            name: max(
+                max(value for port, value in defect.connection.items() if port.slave == name),
+                max(value for port, value in defect.output.items() if port.slave == name),
+
+            )
+            for name in slaves
+        }
+        tolerance_satisfied = all(defect < tolerance for defect in simulator_defects.values())
         num_iter += 1
         if not tolerance_satisfied and num_iter < max_iter:
             step_sizes = {
-                name: step_sizes[name] * Fraction(1, 2)
-                for name in step_sizes.keys()
+                name: step_size * _step_reduction_factor(simulator_defects[name], tolerance)
+                for name, step_size in step_sizes.items()
             }
         else:
             break

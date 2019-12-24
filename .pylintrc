@@ -140,6 +140,7 @@ disable=print-statement,
         exception-escape,
         comprehension-escape,
         logging-fstring-interpolation,
+        logging-format-interpolation,
         inconsistent-return-statements
 
 # Enable the message, report, category or checker with the given id(s). You can

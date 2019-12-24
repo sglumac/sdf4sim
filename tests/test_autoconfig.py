@@ -34,6 +34,6 @@ def test_initial_tokens():
     rate_converters = {cs.Connection(src, dst): make_zoh for dst, src in connections.items()}
     initial_tokens = find_initial_tokens(csnet, step_sizes, rate_converters, 1e-3)
     rpv = cs.repetition_vector(connections, step_sizes)
-    for (name, port), buffer in initial_tokens.items():
+    for (name, _), buffer in initial_tokens.items():
         if name in slaves:
             assert rpv[name] == len(buffer)
