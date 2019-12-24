@@ -4,7 +4,7 @@ from os import path
 from fractions import Fraction
 import numpy as np  # pylint: disable=import-error
 import matplotlib.pyplot as plt  # pylint: disable=import-error
-from sdf4sim import cs, sdf
+from sdf4sim import cs, sdf, autoconfig
 
 
 def controller_parameters(K, T1, Ts):
@@ -254,11 +254,26 @@ def sil_comparison(K=1., T1=5., Ts=1.):
     ''')
 
 
+def automatic_configuration(max_iter=100, end_time=Fraction(20), tolerance=1e-3, fig_file=None):
+    """The demo function"""
+    K, T1, Ts = (1., 5., 1.)
+    csnet = cs_network(K, T1, Ts)
+    cosimulation = autoconfig.find_configuration(
+        csnet, end_time, tolerance, max_iter
+    )
+    results = cs.execute(cosimulation, end_time)
+    fig, axs = plt.subplots(1, 2, sharex=True)
+    fig.set_size_inches(10, 5)
+    plot_cs_output(cosimulation, results, axs)
+    show_figure(fig, fig_file)
+
+
 def main():
     """The entry point of the example"""
     print_error_measurement()
     visualise_error_measurement(fig_file=None)
     sil_comparison()
+    automatic_configuration()
 
 
 if __name__ == '__main__':

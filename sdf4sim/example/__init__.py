@@ -1,5 +1,5 @@
 """Root package for examples"""
 
-from . import control, autoconfig
+from . import control
 
-__all__ = ['control', 'autoconfig']
+__all__ = ['control']
