@@ -1,5 +1,5 @@
 """Root package for examples"""
 
-from . import control
+from . import control, twomass
 
-__all__ = ['control']
+__all__ = ['control', 'twomass']

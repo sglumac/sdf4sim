@@ -254,12 +254,13 @@ def sil_comparison(K=1., T1=5., Ts=1.):
     ''')
 
 
-def automatic_configuration(max_iter=100, end_time=Fraction(20), tolerance=1e-3, fig_file=None):
+def automatic_configuration(tolerance=1e-3, fig_file=None):
     """The demo function"""
     K, T1, Ts = (1., 5., 1.)
+    end_time = Fraction(20)
     csnet = cs_network(K, T1, Ts)
     cosimulation = autoconfig.find_configuration(
-        csnet, end_time, tolerance, max_iter
+        csnet, end_time, tolerance
     )
     results = cs.execute(cosimulation, end_time)
     fig, axs = plt.subplots(1, 2, sharex=True)

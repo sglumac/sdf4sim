@@ -141,7 +141,8 @@ disable=print-statement,
         comprehension-escape,
         logging-fstring-interpolation,
         logging-format-interpolation,
-        inconsistent-return-statements
+        inconsistent-return-statements,
+        super-init-not-called,
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -267,6 +268,9 @@ good-names=i,
            ax,
            hs,
            ts,
+           a,
+           b,
+           c,
            _
 
 # Include a hint for the correct naming format with invalid-name.

@@ -71,7 +71,7 @@ def _step_reduction_factor(defect: float, tolerance: float) -> Fraction:
 
 
 def find_configuration(
-        csnet: cs.Network, end_time: Fraction, tolerance: float, max_iter: int
+        csnet: cs.Network, end_time: Fraction, tolerance: float, max_iter: int = 10
 ) -> cs.Cosimulation:
     """A method for finding a working configuration for the given co-simulation network"""
     slaves, connections = csnet
@@ -81,7 +81,7 @@ def find_configuration(
 
     num_iter = 0
     while True:
-        initial_tokens = find_initial_tokens(csnet, step_sizes, rate_converters, tolerance)
+        initial_tokens = find_initial_tokens(csnet, step_sizes, rate_converters, tolerance * 0.1)
         cosim = csnet, step_sizes, rate_converters, initial_tokens
         defect = cs.evaluate(cosim, end_time)
         simulator_defects = {

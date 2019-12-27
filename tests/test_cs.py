@@ -4,6 +4,7 @@ import logging
 from fractions import Fraction
 from os import path
 from sympy import lcm, gcd  # pylint: disable=import-error
+import matplotlib  # pylint: disable=import-error
 import pytest
 from sdf4sim import example, sdf, cs
 
@@ -24,7 +25,6 @@ def test_control_cs_valid():
 def test_control_loop_example():
     """A test whether the control loop example runs"""
     example.control.print_error_measurement()
-    import matplotlib
     matplotlib.use('agg')
     example.control.visualise_error_measurement(fig_file='cs_compare.pdf')
     assert path.isfile('cs_compare.pdf')
@@ -52,9 +52,10 @@ def test_repetition_vector():
 
 
 def test_defect_calculation_control():
+    """Tests whether defect calculation give sane results"""
     csnet = example.control.cs_network()
     slaves, connections = csnet
-    step_sizes = {name: Fraction(1, 2) for name in slaves.keys()}
+    step_sizes = {name: Fraction(1, 2) for name in slaves}
     make_zoh: cs.ConverterConstructor = cs.Zoh
     rate_converters = {cs.Connection(src, dst): make_zoh for dst, src in connections.items()}
     initial_tokens = {sdf.Dst('PI', 'u'): [0.], sdf.Dst('PT2', 'u'): [0.]}
@@ -106,7 +107,7 @@ def _semiconnected_ramps(slope1=1., slope2=1.) -> cs.Network:
 def ramp_cosimulation(slope1=2., slope2=3., step1=Fraction(5), step2=Fraction(7)):
     """Used for testing the defect calculation"""
     csnet = _semiconnected_ramps(slope1, slope2)
-    slaves, connections = csnet
+    _, connections = csnet
     step_sizes = {'Ramp1': step1, 'Ramp2': step2}
     make_zoh: cs.ConverterConstructor = cs.Zoh
     rate_converters = {cs.Connection(src, dst): make_zoh for dst, src in connections.items()}
@@ -121,6 +122,7 @@ def ramp_cosimulation(slope1=2., slope2=3., step1=Fraction(5), step2=Fraction(7)
 
 
 def test_defect_calculation():
+    """Tests defect calculation on the cosimulation made of ramps"""
     slope1, slope2 = 2., 3.
     step1, step2 = Fraction(5), Fraction(7)
     cosim = ramp_cosimulation(slope1, slope2, step1, step2)

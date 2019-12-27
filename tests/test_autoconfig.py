@@ -4,8 +4,7 @@ import logging
 from fractions import Fraction
 from os import path
 from sdf4sim.autoconfig import find_initial_tokens
-from sdf4sim.example import control
-from sdf4sim import cs
+from sdf4sim import cs, example
 
 
 logging.basicConfig(
@@ -17,13 +16,13 @@ logging.basicConfig(
 
 def test_autoconfig_example():
     """Runs the example and checks if it crashes"""
-    control.automatic_configuration(max_iter=10, tolerance=0.1, fig_file='autoconfig.pdf')
+    example.control.automatic_configuration(tolerance=0.1, fig_file='autoconfig.pdf')
     assert path.isfile('autoconfig.pdf')
 
 
 def test_initial_tokens():
     """Checks the procedure for finding the initial tokens"""
-    csnet = control.cs_network()
+    csnet = example.control.cs_network()
     initial_step = Fraction(1, 5)
     slaves, connections = csnet
     step_sizes: cs.StepSizes = {
@@ -36,3 +35,9 @@ def test_initial_tokens():
     for (name, _), buffer in initial_tokens.items():
         if name in slaves:
             assert rpv[name] == len(buffer)
+
+
+def test_twomass_autoconfig():
+    """Another test on an example"""
+    example.twomass.automatic_configuration(end_time=Fraction(1), fig_file='twomass.pdf')
+    assert path.isfile('twomass.pdf')
