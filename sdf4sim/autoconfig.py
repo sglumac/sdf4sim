@@ -1,6 +1,9 @@
 """Module used for automatic configuration of co-simulation"""
 
 from fractions import Fraction
+from itertools import chain
+import functools as fcn
+from scipy.optimize import minimize  # pylint: disable=import-error
 from sdf4sim import cs, sdf
 
 
@@ -35,31 +38,68 @@ def _next_tokens(connections, step_sizes, results) -> cs.InitialTokens:
     return next_tokens
 
 
+def tokens_to_vector(tokens):
+    """Prerequisite for minimization defect minimization"""
+    return list(chain.from_iterable(tokens[port] for port in sorted(tokens.keys())))
+
+
+def vector_to_tokens(model_tokens, vector):
+    """Prerequisite for minimization defect minimization"""
+    tokens = dict()
+    idx = 0
+    for port in sorted(model_tokens.keys()):
+        num = len(model_tokens[port])
+        tokens[port] = vector[idx:idx + num]
+        idx += num
+    return tokens
+
+
+def calculate_simulator_defects(slaves, defect: cs.CommunicationDefect):
+    """Calculates max of output and connection defect for each simulator"""
+    return {
+        name: max(
+            max(value for port, value in defect.connection.items() if port.slave == name),
+            max(value for port, value in defect.output.items() if port.slave == name),
+
+        )
+        for name in slaves
+    }
+
+
+def token_evaluation(csnet, step_sizes, rate_converters, model_tokens, vector):
+    """Evaluates tokens with two iterations"""
+    tokens = vector_to_tokens(model_tokens, vector)
+    cosim = csnet, step_sizes, rate_converters, tokens
+    slaves, _ = csnet
+    end_time = 2 * max(step_sizes.values())
+    simulator_defects = calculate_simulator_defects(slaves, cs.evaluate(cosim, end_time))
+    return max(simulator_defects.values())
+
+
 def find_initial_tokens(
-        csnet: cs.Network, step_sizes: cs.StepSizes, rate_converters: cs.RateConverters,
-        tolerance: float
+        csnet: cs.Network, step_sizes: cs.StepSizes, rate_converters: cs.RateConverters
 ) -> cs.InitialTokens:
     """Find the initial tokens based on fixed point iteration"""
-    _, connections = csnet
+    slaves, connections = csnet
     tokens = _null_jacobi_initial_tokens(connections, step_sizes)
 
-    tolerance_satisfied = False
-    while not tolerance_satisfied:
+    num_slaves = len(slaves)
+    for _ in range(num_slaves * num_slaves):
         sdfg = cs.convert_to_sdf(
             (csnet, step_sizes, rate_converters, tokens)
         )
         results = sdf.sequential_run(sdfg, sdf.iterations_expired(1))
-        next_tokens = _next_tokens(connections, step_sizes, results)
-        initial_defect = max(
-            max(abs(next_token - token)
-                for next_token, token
-                in zip(next_tokens[dst], tokens[dst]))
-            for dst in tokens.keys()
-        )
-        tolerance_satisfied = initial_defect < tolerance
-        tokens = next_tokens
+        tokens = _next_tokens(connections, step_sizes, results)
 
-    return tokens
+    minimization_criterion = fcn.partial(
+        token_evaluation, csnet, step_sizes, rate_converters, tokens
+    )
+    res = minimize(
+        minimization_criterion, tokens_to_vector(tokens),
+        method='Nelder-Mead', options={'adaptive': True}
+    )
+
+    return vector_to_tokens(tokens, res.x)
 
 
 def _step_reduction_factor(defect: float, tolerance: float) -> Fraction:
@@ -81,17 +121,9 @@ def find_configuration(
 
     num_iter = 0
     while True:
-        initial_tokens = find_initial_tokens(csnet, step_sizes, rate_converters, tolerance * 0.1)
+        initial_tokens = find_initial_tokens(csnet, step_sizes, rate_converters)
         cosim = csnet, step_sizes, rate_converters, initial_tokens
-        defect = cs.evaluate(cosim, end_time)
-        simulator_defects = {
-            name: max(
-                max(value for port, value in defect.connection.items() if port.slave == name),
-                max(value for port, value in defect.output.items() if port.slave == name),
-
-            )
-            for name in slaves
-        }
+        simulator_defects = calculate_simulator_defects(slaves, cs.evaluate(cosim, end_time))
         tolerance_satisfied = all(defect < tolerance for defect in simulator_defects.values())
         num_iter += 1
         if not tolerance_satisfied and num_iter < max_iter:

@@ -30,7 +30,7 @@ def test_initial_tokens():
     }
     make_zoh: cs.ConverterConstructor = cs.Zoh
     rate_converters = {cs.Connection(src, dst): make_zoh for dst, src in connections.items()}
-    initial_tokens = find_initial_tokens(csnet, step_sizes, rate_converters, 1e-3)
+    initial_tokens = find_initial_tokens(csnet, step_sizes, rate_converters)
     rpv = cs.repetition_vector(connections, step_sizes)
     for (name, _), buffer in initial_tokens.items():
         if name in slaves:
@@ -39,5 +39,5 @@ def test_initial_tokens():
 
 def test_twomass_autoconfig():
     """Another test on an example"""
-    example.twomass.automatic_configuration(end_time=Fraction(1), fig_file='twomass.pdf')
+    example.twomass.automatic_configuration(end_time=Fraction(20), fig_file='twomass.pdf')
     assert path.isfile('twomass.pdf')

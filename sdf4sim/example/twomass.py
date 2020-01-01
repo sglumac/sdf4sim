@@ -8,29 +8,43 @@ from sdf4sim import cs, sdf, autoconfig
 from sdf4sim.example.control import show_figure
 
 
+SideParameters = NamedTuple('SideParameters', [
+    ('mass', float), ('spring', float), ('damping', float),
+    ('initial_displacement', float), ('initial_velocity', float),
+])
+
+MiddleParameters = NamedTuple('MiddleParameters', [
+    ('damping', float), ('spring', float), ('initial_displacement', float),
+])
+
 TwoMass = NamedTuple('TwoMass', [
-    ('mass_left', float), ('spring_left', float), ('damping_left', float),
-    ('initial_displacement_left', float), ('initial_velocity_left', float),
-    ('mass_right', float), ('spring_right', float), ('damping_right', float),
-    ('initial_displacement_right', float), ('initial_velocity_right', float),
-    ('damping_connection', float), ('spring_connection', float),
-    ('initial_displacement_connection', float),
+    ('left', SideParameters), ('middle', MiddleParameters), ('right', SideParameters),
 ])
 
 
-def generate_parameters(non_default: Dict[str, float]) -> TwoMass:
+def generate_parameters(non_default: Dict[str, Dict[str, float]]) -> TwoMass:
     """Generate parameters of a two mass oscillator"""
-    parameters = {
-        'mass_left': 10.0, 'spring_left': 1.0, 'damping_left': 1.0,
-        'initial_displacement_left': 0.1, 'initial_velocity_left': 0.1,
-        'mass_right': 10.0, 'spring_right': 1.0, 'damping_right': 2.0,
-        'initial_displacement_right': 0.2, 'initial_velocity_right': 0.1,
-        'damping_connection': 2.0, 'spring_connection': 1.0,
-        'initial_displacement_connection': 1.0,
+    parameters: Dict[str, Dict[str, float]] = {
+        'left': {
+            'mass': 10.0, 'spring': 1.0, 'damping': 1.0,
+            'initial_displacement': 0.1, 'initial_velocity': 0.1,
+        },
+        'right': {
+            'mass': 10.0, 'spring': 1.0, 'damping': 2.0,
+            'initial_displacement': 0.2, 'initial_velocity': 0.1,
+        },
+        'middle': {
+            'damping': 2.0, 'spring': 1.0, 'initial_displacement': 1.0,
+        }
     }
-    for parameter, value in non_default.items():
-        parameters[parameter] = value
-    return TwoMass(**parameters)
+    for side, params in non_default.items():
+        for parameter, value in params.items():
+            parameters[side][parameter] = value
+    return TwoMass(
+        left=SideParameters(**parameters['left']),
+        middle=MiddleParameters(**parameters['middle']),
+        right=SideParameters(**parameters['right']),
+    )
 
 
 def second_order_response(a, b, c):
@@ -86,17 +100,13 @@ def second_order_response(a, b, c):
 
 class SideOscillator(cs.Simulator):
     """Simulator"""
-    def __init__(
-            self, initial_displacement: float, initial_velocity,
-            mass: float, damping_constant: float, spring_constant: float,
-            step_size: Fraction,
-    ):
+    def __init__(self, params: SideParameters, step_size: Fraction):
         self._step_size = step_size
-        self._dx = initial_displacement
-        self._dv = initial_velocity
-        self._mass = mass
-        self._c = spring_constant
-        self._d = damping_constant
+        self._dx = params.initial_displacement
+        self._dv = params.initial_velocity
+        self._mass = params.mass
+        self._c = params.spring
+        self._d = params.damping
         self._step_response = second_order_response(self._mass, self._d, self._c)
 
     @property
@@ -115,13 +125,10 @@ class SideOscillator(cs.Simulator):
 
 class MiddleOscillator(cs.Simulator):
     """Simulator of a parallel damping and spring element"""
-    def __init__(
-            self, initial_displacement: float, damping_constant: float,
-            spring_constant: float, step_size: Fraction
-    ):
-        self._d = damping_constant
-        self._c = spring_constant
-        self._dx = initial_displacement
+    def __init__(self, params: MiddleParameters, step_size: Fraction):
+        self._d = params.damping
+        self._c = params.spring
+        self._dx = params.initial_displacement
         self._step_size = step_size
 
     @property
@@ -144,22 +151,13 @@ class MiddleOscillator(cs.Simulator):
 def cs_network(parameters: TwoMass):
     """The network of six mechanical translational elements"""
     def construct_left(step_size: Fraction):
-        return SideOscillator(
-            parameters.initial_displacement_left, parameters.initial_velocity_left,
-            parameters.mass_left, parameters.damping_left, parameters.spring_left, step_size
-        )
+        return SideOscillator(parameters.left, step_size)
 
     def construct_middle(step_size: Fraction):
-        return MiddleOscillator(
-            parameters.initial_displacement_connection, parameters.damping_connection,
-            parameters.spring_connection, step_size
-        )
+        return MiddleOscillator(parameters.middle, step_size)
 
     def construct_right(step_size: Fraction):
-        return SideOscillator(
-            parameters.initial_displacement_right, parameters.initial_velocity_right,
-            parameters.mass_right, parameters.damping_right, parameters.spring_right, step_size
-        )
+        return SideOscillator(parameters.right, step_size)
 
     slaves = {
         'left_oscillator': construct_left,
@@ -199,7 +197,7 @@ def simple_execution(end_time=Fraction(100), fig_file=None):
     step_sizes = {name: Fraction(1, 4) for name in slaves}
     make_zoh: cs.ConverterConstructor = cs.Zoh
     rate_converters = {cs.Connection(src, dst): make_zoh for dst, src in connections.items()}
-    initial_tokens = autoconfig.find_initial_tokens(csnet, step_sizes, rate_converters, 1e-3)
+    initial_tokens = autoconfig.find_initial_tokens(csnet, step_sizes, rate_converters)
     cosimulation = csnet, step_sizes, rate_converters, initial_tokens
     results = cs.execute(cosimulation, end_time)
     print(f"v_right = {results.tokens['middle_oscillator', 'v_right'][-1]}")

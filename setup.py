@@ -31,6 +31,7 @@ setup(
         'sympy>=1.3',
         'numpy>=1.15.4',
         'matplotlib>=3.0.2',
+        'scipy>=1.3.1',
     ],
     license="MIT license",
     long_description=readme + '\n\n' + history,
