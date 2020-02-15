@@ -144,7 +144,7 @@ class MiddleOscillator(cs.Simulator):
         v_left = input_tokens['v_left'][0]
         delta_v = v_right - v_left
         self._dx += self._step_size * delta_v
-        force = self._d * delta_v + self._dx
+        force = self._d * delta_v + self._c * self._dx
         return {'F_left': [-force], 'F_right': [force]}
 
 
