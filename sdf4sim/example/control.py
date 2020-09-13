@@ -131,10 +131,11 @@ def multi_rate(K, T1, Ts) -> cs.Cosimulation:
 def plot_cs_output(cosimulation, results, axs):
     """Plots the output of the control co-simulation"""
     signals = [('PI', 'y'), ('PT2', 'y')]
-    for signal, ax in zip(signals, axs):
+    for signal, ax, output in zip(signals, axs, range(1,3)):
+        labelStr = r'$\gamma_{' + str(output) + '1}[k_' + str(output) +']$'
         instance, port = signal
         ts, vals = cs.get_signal_samples(cosimulation, results, instance, port)
-        ax.stem(ts, vals, label=r'Gauss-Seidel 21 \{$y_{11}(0)$\}',
+        ax.stem(ts, vals, label=labelStr,
                 markerfmt='ks', basefmt='C7--', linefmt='C7--')  # , use_line_collection=True)
 
 
@@ -147,12 +148,14 @@ def _plot_error_lines(cosimulation, results, y2, ax2):
 
 
 def _plot_analytic(axs, ys, end_time):
-    anlbls = ['$y_{11}(t)$', '$y_{21}(t)$']
-    for ax, y, anlbl in zip(axs, ys, anlbls):
+    anlbls = ['$y_{11}(t_1)$', '$y_{21}(t_2)$']
+    xlbls = ['$t_1 = k_1h_1$ [s]', '$t_2 = k_2h_2$ [s]']
+    for ax, y, anlbl, xlbl in zip(axs, ys, anlbls, xlbls):
         ts = np.linspace(0, end_time)
         ax.plot(ts, y(ts), 'k--', label=anlbl)
         ax.set_xlim([0, end_time])
-        ax.legend()
+        ax.legend(framealpha=1)
+        ax.set_xlabel(xlbl)
 
 
 def show_figure(fig, fig_file):
@@ -167,7 +170,7 @@ def show_figure(fig, fig_file):
 def visualise_error_measurement(K=1., T1=5., Ts=1., end_time=20, fig_file=None):
     """Visualizes the error measurement"""
     fig, axs = plt.subplots(1, 2, sharex=True)
-    fig.set_size_inches(10, 5)
+    fig.set_size_inches(8, 4)
     ys = analytic_solution(K, T1, Ts)
     cosimulation = gauss_seidel(K, T1, Ts)
     results = cs.execute(cosimulation, end_time)
