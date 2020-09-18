@@ -99,12 +99,13 @@ class Simulator(sdf.Agent):
         return {y: sdf.OutputPort(float, 1) for y in self._outputs}
 
     def calculate(self, input_tokens):
-        in_vrs, in_vals = zip(*[
-            (self._inputs[u], tokens[0])
-            for u, tokens in input_tokens.items()
-        ])
-        # limitation of the simulator to fmi2Reals
-        self._slave.setReal(in_vrs, in_vals)
+        if input_tokens:
+            in_vrs, in_vals = zip(*[
+                (self._inputs[u], tokens[0])
+                for u, tokens in input_tokens.items()
+            ])
+            # limitation of the simulator to fmi2Reals
+            self._slave.setReal(in_vrs, in_vals)
         out_vars = list(self._outputs)
         out_vrs = list(self._outputs[y] for y in out_vars)
 

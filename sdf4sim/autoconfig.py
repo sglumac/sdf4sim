@@ -7,7 +7,7 @@ from scipy.optimize import minimize  # pylint: disable=import-error
 from sdf4sim import cs, sdf
 
 
-def _null_jacobi_initial_tokens(
+def null_jacobi_initial_tokens(
         connections: cs.Connections, step_sizes: cs.StepSizes
 ) -> cs.InitialTokens:
     """The initial tokens for fully parallel execution"""
@@ -81,7 +81,7 @@ def find_initial_tokens(
 ) -> cs.InitialTokens:
     """Find the initial tokens based on fixed point iteration"""
     slaves, connections = csnet
-    tokens = _null_jacobi_initial_tokens(connections, step_sizes)
+    tokens = null_jacobi_initial_tokens(connections, step_sizes)
 
     num_slaves = len(slaves)
     for _ in range(num_slaves * num_slaves):

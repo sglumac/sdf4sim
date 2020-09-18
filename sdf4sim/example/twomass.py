@@ -4,6 +4,8 @@ from typing import NamedTuple, Dict
 from fractions import Fraction
 from math import sqrt, exp, sin, cos
 import matplotlib.pyplot as plt  # pylint: disable=import-error
+from scipy.integrate import solve_ivp  # pylint: disable=import-error
+import numpy as np
 from sdf4sim import cs, sdf, autoconfig
 from sdf4sim.example.control import show_figure
 
@@ -142,10 +144,10 @@ class MiddleOscillator(cs.Simulator):
     def calculate(self, input_tokens):
         v_right = input_tokens['v_right'][0]
         v_left = input_tokens['v_left'][0]
-        delta_v = v_right - v_left
+        delta_v = -v_right - v_left
         self._dx += self._step_size * delta_v
         force = self._d * delta_v + self._c * self._dx
-        return {'F_left': [-force], 'F_right': [force]}
+        return {'F_left': [force], 'F_right': [force]}
 
 
 def cs_network(parameters: TwoMass):
@@ -210,5 +212,118 @@ def simple_execution(end_time=Fraction(100), fig_file=None):
     show_figure(plt.gcf(), fig_file)
 
 
+def monolithic_solution(parameters: TwoMass, end_time: Fraction, step_size: Fraction):
+
+    def doscillator(time, state):
+        nonlocal parameters
+        xleft, vleft, xmiddle, xright, vright = state
+
+        vmiddle = -vright - vleft
+        fmiddle = parameters.middle.damping * vmiddle + parameters.middle.spring * xmiddle
+
+        dxmiddle = vmiddle
+
+        dxleft = vleft
+        dvleft = (
+            fmiddle
+            - parameters.left.damping * vleft
+            - parameters.left.spring * xleft
+        ) / parameters.left.mass
+
+        dxright = vright
+        dvright = (
+            fmiddle
+            - parameters.right.damping * vright
+            - parameters.right.spring * xright
+        ) / parameters.right.mass
+
+        return dxleft, dvleft, dxmiddle, dxright, dvright
+
+    state0 = [
+        parameters.left.initial_displacement,
+        parameters.left.initial_velocity,
+        parameters.middle.initial_displacement,
+        parameters.right.initial_displacement,
+        parameters.right.initial_velocity
+    ]
+
+    ts = step_size + np.arange(0, end_time, step_size)
+
+    results = solve_ivp(doscillator, [0, end_time], state0, t_eval=ts)
+
+    print(results)
+    return results
+
+
+def three_cosimulations_comparison(end_time=Fraction(50), fig_file=None):
+    non_default = dict()
+    parameters = generate_parameters(non_default)
+
+    csnet = cs_network(parameters)
+    slaves, connections = csnet
+    make_zoh: cs.ConverterConstructor = cs.Zoh
+    rate_converters = {cs.Connection(src, dst): make_zoh for dst, src in connections.items()}
+
+    step_sizes_0 = {name: Fraction(1, 4) for name in slaves}
+    initial_tokens_0 = autoconfig.find_initial_tokens(csnet, step_sizes_0, rate_converters)
+    cosimulation_0 = csnet, step_sizes_0, rate_converters, initial_tokens_0
+    results_0 = cs.execute(cosimulation_0, end_time)
+    ts_F_0, vals_F_0 = cs.get_signal_samples(
+        cosimulation_0, results_0, 'middle_oscillator', 'F_right'
+    )
+    ts_v_0, vals_v_0 = cs.get_signal_samples(cosimulation_0, results_0, 'right_oscillator', 'v')
+
+    step_sizes_1 = {name: Fraction(1, 2) for name in slaves}
+    initial_tokens_1 = initial_tokens_0
+    cosimulation_1 = csnet, step_sizes_1, rate_converters, initial_tokens_1
+    results_1 = cs.execute(cosimulation_1, end_time)
+    ts_F_1, vals_F_1 = cs.get_signal_samples(
+        cosimulation_1, results_1, 'middle_oscillator', 'F_right'
+    )
+    ts_v_1, vals_v_1 = cs.get_signal_samples(cosimulation_1, results_1, 'right_oscillator', 'v')
+
+    step_sizes_2 = step_sizes_0
+    initial_tokens_2 = autoconfig.null_jacobi_initial_tokens(connections, step_sizes_2)
+    cosimulation_2 = csnet, step_sizes_2, rate_converters, initial_tokens_2
+    results_2 = cs.execute(cosimulation_2, end_time)
+    ts_F_2, vals_F_2 = cs.get_signal_samples(
+        cosimulation_2, results_2, 'middle_oscillator', 'F_right'
+    )
+    ts_v_2, vals_v_2 = cs.get_signal_samples(cosimulation_2, results_2, 'right_oscillator', 'v')
+
+    defects_0 = cs.evaluate(cosimulation_0, end_time)
+    defects_1 = cs.evaluate(cosimulation_1, end_time)
+    defects_2 = cs.evaluate(cosimulation_2, end_time)
+
+    print(max(max(defects_0.output.values()), max(defects_0.connection.values())))
+    print(max(max(defects_1.output.values()), max(defects_1.connection.values())))
+    print(max(max(defects_2.output.values()), max(defects_2.connection.values())))
+
+    results = monolithic_solution(parameters, end_time, Fraction(1, 4))
+    vms = -results.y[1] - results.y[4]
+    fs = parameters.middle.spring * results.y[2] + parameters.middle.damping * vms
+
+    fig, axs = plt.subplots(2, 1, sharex=True)
+    axf, axv = axs
+    axf.set_title('f')
+    axv.set_title('v')
+
+    axf.plot(ts_F_0, vals_F_0, label='ref')
+    axf.plot(ts_F_1, vals_F_1, label='h / 2')
+    axf.plot(ts_F_2, vals_F_2, label='0 init')
+    axf.plot(results.t, fs, 'r', label='monolithic')
+
+    axv.plot(ts_v_0, vals_v_0, label='ref')
+    axv.plot(ts_v_1, vals_v_1, label='h / 2')
+    axv.plot(ts_v_2, vals_v_2, label='0 init')
+    axv.plot(results.t, results.y[4], 'r', label='monolithic')
+
+    axf.legend()
+    axv.legend()
+
+    show_figure(fig, fig_file)
+
+
 if __name__ == '__main__':
-    automatic_configuration()
+    # automatic_configuration()
+    three_cosimulations_comparison()

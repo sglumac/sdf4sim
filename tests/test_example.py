@@ -1,12 +1,13 @@
 """Test the examples"""
 
+from os import path
 import numpy as np  # pylint: disable=import-error
 import pytest
-from sdf4sim.example.twomass import second_order_response
+from sdf4sim.example import twomass
 
 def test_oscillatory_response():
     """Test to see if SideOscillators are calculating correctly"""
-    response = second_order_response(2, 12, 68)
+    response = twomass.second_order_response(2, 12, 68)
     ts = np.linspace(0, 10)
     x_init, v_init, const = 7., 11., 13.
     x_part = 13. / 68.
@@ -22,3 +23,15 @@ def test_oscillatory_response():
         print(t)
         assert next_x == pytest.approx(expected_x)
         assert next_v == pytest.approx(expected_v)
+
+
+def test_three_two_mass():
+    """Tests to see if the image was created"""
+    twomass.three_cosimulations_comparison(fig_file='three_two_mass.pdf')
+    assert path.isfile('three_two_mass.pdf')
+
+
+def test_simple_two_mass():
+    """Tests to see if the image was created"""
+    twomass.simple_execution(fig_file='simple.pdf')
+    assert path.isfile('simple.pdf')
