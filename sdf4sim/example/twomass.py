@@ -175,16 +175,21 @@ def cs_network(parameters: TwoMass):
     return slaves, connections
 
 
-def automatic_configuration(end_time=Fraction(10), tolerance=0.1, fig_file=None):
-    """The demo function"""
-    plt.clf()
-    non_default = dict()
-    csnet = cs_network(generate_parameters(non_default))
+def _auto_results_only(csnet: cs.Network, end_time: Fraction, tolerance: float):
+    """Helper function"""
     cosimulation = autoconfig.find_configuration(
         csnet, end_time, tolerance
     )
     print(cosimulation[1])
-    results = cs.execute(cosimulation, end_time)
+    return cosimulation, cs.execute(cosimulation, end_time)
+
+
+def automatic_configuration(end_time=Fraction(20), tolerance=0.1, fig_file=None):
+    """The demo function"""
+    plt.clf()
+    non_default = dict()
+    csnet = cs_network(generate_parameters(non_default))
+    cosimulation, results = _auto_results_only(csnet, end_time, tolerance)
     ts, vals = cs.get_signal_samples(cosimulation, results, 'right_oscillator', 'v')
     plt.stem(ts, vals)
     show_figure(plt.gcf(), fig_file)
@@ -213,8 +218,9 @@ def simple_execution(end_time=Fraction(100), fig_file=None):
 
 
 def monolithic_solution(parameters: TwoMass, end_time: Fraction, step_size: Fraction):
+    """Helper function to find the monolithic solution"""
 
-    def doscillator(time, state):
+    def doscillator(_, state):
         nonlocal parameters
         xleft, vleft, xmiddle, xright, vright = state
 
@@ -249,74 +255,87 @@ def monolithic_solution(parameters: TwoMass, end_time: Fraction, step_size: Frac
 
     ts = step_size + np.arange(0, end_time, step_size)
 
-    results = solve_ivp(doscillator, [0, end_time], state0, t_eval=ts)
-
-    print(results)
-    return results
+    return solve_ivp(doscillator, [0, end_time], state0, t_eval=ts)
 
 
-def three_cosimulations_comparison(end_time=Fraction(50), fig_file=None):
-    non_default = dict()
-    parameters = generate_parameters(non_default)
-
+def _three_cosimulations(parameters: TwoMass):
+    """Helper function"""
     csnet = cs_network(parameters)
     slaves, connections = csnet
     make_zoh: cs.ConverterConstructor = cs.Zoh
     rate_converters = {cs.Connection(src, dst): make_zoh for dst, src in connections.items()}
 
-    step_sizes_0 = {name: Fraction(1, 4) for name in slaves}
-    initial_tokens_0 = autoconfig.find_initial_tokens(csnet, step_sizes_0, rate_converters)
-    cosimulation_0 = csnet, step_sizes_0, rate_converters, initial_tokens_0
-    results_0 = cs.execute(cosimulation_0, end_time)
-    ts_F_0, vals_F_0 = cs.get_signal_samples(
-        cosimulation_0, results_0, 'middle_oscillator', 'F_right'
+    cosimulations = list()
+
+    step_sizes_1 = {name: Fraction(1, 4) for name in slaves}
+    initial_tokens_1 = autoconfig.find_initial_tokens(csnet, step_sizes_1, rate_converters)
+    cosimulations.append((csnet, step_sizes_1, rate_converters, initial_tokens_1))
+
+    step_sizes_2 = {name: Fraction(1, 2) for name in slaves}
+    initial_tokens_2 = autoconfig.find_initial_tokens(csnet, step_sizes_2, rate_converters)
+    cosimulations.append((csnet, step_sizes_2, rate_converters, initial_tokens_2))
+
+    step_sizes_3 = step_sizes_1
+    initial_tokens_3 = autoconfig.null_jacobi_initial_tokens(connections, step_sizes_3)
+    cosimulations.append((csnet, step_sizes_3, rate_converters, initial_tokens_3))
+
+    return cosimulations
+
+
+def _important_signals(cosimulation, end_time, samples, num):
+    results = cs.execute(cosimulation, end_time)
+    samples[f'tf{num}'], samples[f'vf{num}'] = cs.get_signal_samples(
+        cosimulation, results, 'middle_oscillator', 'F_right'
     )
-    ts_v_0, vals_v_0 = cs.get_signal_samples(cosimulation_0, results_0, 'right_oscillator', 'v')
+    samples[f'tv{num}'], samples[f'vv{num}'] = cs.get_signal_samples(
+        cosimulation, results, 'right_oscillator', 'v')
 
-    step_sizes_1 = {name: Fraction(1, 2) for name in slaves}
-    initial_tokens_1 = initial_tokens_0
-    cosimulation_1 = csnet, step_sizes_1, rate_converters, initial_tokens_1
-    results_1 = cs.execute(cosimulation_1, end_time)
-    ts_F_1, vals_F_1 = cs.get_signal_samples(
-        cosimulation_1, results_1, 'middle_oscillator', 'F_right'
-    )
-    ts_v_1, vals_v_1 = cs.get_signal_samples(cosimulation_1, results_1, 'right_oscillator', 'v')
 
-    step_sizes_2 = step_sizes_0
-    initial_tokens_2 = autoconfig.null_jacobi_initial_tokens(connections, step_sizes_2)
-    cosimulation_2 = csnet, step_sizes_2, rate_converters, initial_tokens_2
-    results_2 = cs.execute(cosimulation_2, end_time)
-    ts_F_2, vals_F_2 = cs.get_signal_samples(
-        cosimulation_2, results_2, 'middle_oscillator', 'F_right'
-    )
-    ts_v_2, vals_v_2 = cs.get_signal_samples(cosimulation_2, results_2, 'right_oscillator', 'v')
+def _print_defects(cosimulations, end_time):
+    """Helper function"""
+    defects = [cs.evaluate(cosimulation, end_time) for cosimulation in cosimulations]
 
-    defects_0 = cs.evaluate(cosimulation_0, end_time)
-    defects_1 = cs.evaluate(cosimulation_1, end_time)
-    defects_2 = cs.evaluate(cosimulation_2, end_time)
+    for num, defect in enumerate(defects):
+        criterion = max(max(defect.output.values()), max(defect.connection.values()))
+        print(f'defect(G{num + 1}) = {criterion}')
 
-    print(max(max(defects_0.output.values()), max(defects_0.connection.values())))
-    print(max(max(defects_1.output.values()), max(defects_1.connection.values())))
-    print(max(max(defects_2.output.values()), max(defects_2.connection.values())))
 
-    results = monolithic_solution(parameters, end_time, Fraction(1, 4))
-    vms = -results.y[1] - results.y[4]
-    fs = parameters.middle.spring * results.y[2] + parameters.middle.damping * vms
+def _print_errors(samples, numcs, results, fms):
+    """Helper function"""
+    def calculate_errors(ts1, xs1, ts2, xs2):
+        return np.abs(
+            np.interp(np.array(ts1).astype(float), ts2.astype(float), xs2.astype(float)) - xs1
+        )
 
+    for num in range(numcs):
+        verrs = calculate_errors(samples[f'tv{num}'], samples[f'vv{num}'], results.t, results.y[4])
+        ferrs = calculate_errors(samples[f'tf{num}'], samples[f'vf{num}'], results.t, fms)
+
+        print(f'error(G{num + 1}, F) = {max(ferrs)}')
+        print(f'error(G{num + 1}, v) = {max(verrs)}')
+
+
+def _plot_cosimulations(interval, samples, results, fms, fig_file):
+    """Helper function"""
     fig, axs = plt.subplots(2, 1, sharex=True)
     axf, axv = axs
-    axf.set_title('f')
-    axv.set_title('v')
+    axf.set_ylabel('Force [N]')
+    axv.set_ylabel('Speed [m/s]')
 
-    axf.plot(ts_F_0, vals_F_0, label='ref')
-    axf.plot(ts_F_1, vals_F_1, label='h / 2')
-    axf.plot(ts_F_2, vals_F_2, label='0 init')
-    axf.plot(results.t, fs, 'r', label='monolithic')
+    axv.set_xlabel('time [s]')
 
-    axv.plot(ts_v_0, vals_v_0, label='ref')
-    axv.plot(ts_v_1, vals_v_1, label='h / 2')
-    axv.plot(ts_v_2, vals_v_2, label='0 init')
-    axv.plot(results.t, results.y[4], 'r', label='monolithic')
+    axv.set_xlim(interval)
+
+    numcs = len(samples) // 4
+
+    for num in range(numcs):
+        axf.plot(samples[f'tf{num}'], samples[f'vf{num}'],
+                 label=r'$G_' + str(num + 1) + r'$ - $\widetilde{y}_{21}(t)$')
+        axv.plot(samples[f'tv{num}'], samples[f'vv{num}'],
+                 label=r'$G_' + str(num + 1) + r'$ - $\widetilde{y}_{31}(t)$')
+
+    axf.plot(results.t, fms, 'r', label=r'monolithic - $\overline{y}_{21}(t)$')
+    axv.plot(results.t, results.y[4], 'r', label=r'monolithic - $\overline{y}_{31}$(t)')
 
     axf.legend()
     axv.legend()
@@ -324,6 +343,52 @@ def three_cosimulations_comparison(end_time=Fraction(50), fig_file=None):
     show_figure(fig, fig_file)
 
 
+def three_cosimulations_comparison(end_time=Fraction(20), fig_file=None):
+    """Demo function"""
+    non_default = dict()
+    parameters = generate_parameters(non_default)
+
+    cosimulations = _three_cosimulations(parameters)
+    samples = dict()
+    for num, cosimulation in enumerate(cosimulations):
+        _important_signals(cosimulation, end_time, samples, num)
+
+    results = monolithic_solution(parameters, end_time, Fraction(1, 4))
+    vms = -results.y[1] - results.y[4]
+    fms = parameters.middle.spring * results.y[2] + parameters.middle.damping * vms
+
+    _print_defects(cosimulations, end_time)
+    _print_errors(samples, 3, results, fms)
+    _plot_cosimulations([0.5, float(end_time)], samples, results, fms, fig_file)
+
+
+def three_tolerances_auto(end_time=Fraction(20), fig_file=None):
+    """The demo function"""
+    non_default = dict()
+    parameters = generate_parameters(non_default)
+
+    non_default = dict()
+    csnet = cs_network(generate_parameters(non_default))
+
+    cosimulations = list()
+
+    for tol in [1., 0.5, 0.25]:
+        cosimulation, results = _auto_results_only(csnet, end_time, tol)
+        cosimulations.append(cosimulation)
+
+    samples = dict()
+    for num, cosimulation in enumerate(cosimulations):
+        _important_signals(cosimulation, end_time, samples, num)
+
+    results = monolithic_solution(parameters, end_time, Fraction(1, 4))
+    vms = -results.y[1] - results.y[4]
+    fms = parameters.middle.spring * results.y[2] + parameters.middle.damping * vms
+
+    _print_defects(cosimulations, end_time)
+    _print_errors(samples, len(cosimulations), results, fms)
+    _plot_cosimulations([0.5, float(end_time)], samples, results, fms, fig_file)
+
+
 if __name__ == '__main__':
-    # automatic_configuration()
-    three_cosimulations_comparison()
+    # three_cosimulations_comparison()
+    three_tolerances_auto()

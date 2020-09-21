@@ -132,10 +132,10 @@ def plot_cs_output(cosimulation, results, axs):
     """Plots the output of the control co-simulation"""
     signals = [('PI', 'y'), ('PT2', 'y')]
     for signal, ax, output in zip(signals, axs, range(1, 3)):
-        labelStr = r'$\gamma_{' + str(output) + '1}[k_' + str(output) + ']$'
+        label_str = r'$\gamma_{' + str(output) + '1}[k_' + str(output) + ']$'
         instance, port = signal
         ts, vals = cs.get_signal_samples(cosimulation, results, instance, port)
-        ax.stem(ts, vals, label=labelStr,
+        ax.stem(ts, vals, label=label_str,
                 markerfmt='ks', basefmt='C7--', linefmt='C7--')  # , use_line_collection=True)
 
 
