@@ -41,3 +41,9 @@ def test_twomass_autoconfig():
     """Another test on an example"""
     example.twomass.automatic_configuration(end_time=Fraction(20), fig_file='twomass.pdf')
     assert path.isfile('twomass.pdf')
+
+
+def test_another_twomass_autoconfig():
+    """Yet another test on an example"""
+    example.twomass.three_tolerances_auto(fig_file='autos.pdf')
+    assert path.isfile('autos.pdf')

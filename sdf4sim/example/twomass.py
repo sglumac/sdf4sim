@@ -315,32 +315,28 @@ def _print_errors(samples, numcs, results, fms):
         print(f'error(G{num + 1}, v) = {max(verrs)}')
 
 
-def _plot_cosimulations(interval, samples, results, fms, fig_file):
+def _plot_cosimulations(interval, samples, results, fms, plot):
     """Helper function"""
     fig, axs = plt.subplots(2, 1, sharex=True)
     axf, axv = axs
-    axf.set_ylabel('Force [N]')
-    axv.set_ylabel('Speed [m/s]')
+    axf.set_ylabel(r'Force [N]')
+    axv.set_ylabel(r'Speed [m/s]')
 
     axv.set_xlabel('time [s]')
 
     axv.set_xlim(interval)
 
-    numcs = len(samples) // 4
+    for num, (labelv, labelf) in enumerate(plot['labels']):
+        axf.plot(samples[f'tf{num}'], samples[f'vf{num}'], label=labelv)
+        axv.plot(samples[f'tv{num}'], samples[f'vv{num}'], label=labelf)
 
-    for num in range(numcs):
-        axf.plot(samples[f'tf{num}'], samples[f'vf{num}'],
-                 label=r'$G_' + str(num + 1) + r'$ - $\widetilde{y}_{21}(t)$')
-        axv.plot(samples[f'tv{num}'], samples[f'vv{num}'],
-                 label=r'$G_' + str(num + 1) + r'$ - $\widetilde{y}_{31}(t)$')
-
-    axf.plot(results.t, fms, 'r', label=r'monolithic - $\overline{y}_{21}(t)$')
-    axv.plot(results.t, results.y[4], 'r', label=r'monolithic - $\overline{y}_{31}$(t)')
+    axf.plot(results.t, fms, 'r--', label=r'monolithic', alpha=0.8)
+    axv.plot(results.t, results.y[4], 'r--', label=r'monolithic', alpha=0.8)
 
     axf.legend()
     axv.legend()
 
-    show_figure(fig, fig_file)
+    show_figure(fig, plot['fig_file'])
 
 
 def three_cosimulations_comparison(end_time=Fraction(20), fig_file=None):
@@ -359,7 +355,16 @@ def three_cosimulations_comparison(end_time=Fraction(20), fig_file=None):
 
     _print_defects(cosimulations, end_time)
     _print_errors(samples, 3, results, fms)
-    _plot_cosimulations([0.5, float(end_time)], samples, results, fms, fig_file)
+
+    plot = {
+        'fig_file': fig_file,
+        'labels': [
+            tuple(r'$G_' + str(num) + r'$, $\widetilde{y}_{' + str(output) + r'1}$'
+                  for output in range(2, 4))
+            for num in range(1, 4)
+        ]
+    }
+    _plot_cosimulations([0.5, float(end_time)], samples, results, fms, plot)
 
 
 def three_tolerances_auto(end_time=Fraction(20), fig_file=None):
@@ -371,8 +376,8 @@ def three_tolerances_auto(end_time=Fraction(20), fig_file=None):
     csnet = cs_network(generate_parameters(non_default))
 
     cosimulations = list()
-
-    for tol in [1., 0.5, 0.25]:
+    tolerances = [1., 0.5, 0.25]
+    for tol in tolerances:
         cosimulation, results = _auto_results_only(csnet, end_time, tol)
         cosimulations.append(cosimulation)
 
@@ -386,9 +391,18 @@ def three_tolerances_auto(end_time=Fraction(20), fig_file=None):
 
     _print_defects(cosimulations, end_time)
     _print_errors(samples, len(cosimulations), results, fms)
-    _plot_cosimulations([0.5, float(end_time)], samples, results, fms, fig_file)
+    plot = {
+        'fig_file': fig_file,
+        'labels': [
+            tuple(
+                r'$tol = ' + str(tol) + r'$, $\widetilde{y}_{' + str(output) + '1}$'
+                for output in range(2, 4)
+            )
+            for tol in tolerances
+        ]
+    }
+    _plot_cosimulations([0.5, float(end_time)], samples, results, fms, plot)
 
 
 if __name__ == '__main__':
-    # three_cosimulations_comparison()
     three_tolerances_auto()
