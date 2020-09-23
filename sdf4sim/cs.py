@@ -200,11 +200,16 @@ def time_expired(cosimulation: Cosimulation, end_time: Fraction) -> sdf.Terminat
     return terminate
 
 
+def execute_until(cosimulation: Cosimulation, termination: sdf.Termination) -> sdf.Results:
+    """Execution of specified cosimulation until the termination condition is met"""
+    sdfg = convert_to_sdf(cosimulation)
+    return sdf.sequential_run(sdfg, termination)
+
+
 def execute(cosimulation: Cosimulation, end_time: Fraction) -> sdf.Results:
     """Execution of specified cosimulation until end_time"""
     termination = time_expired(cosimulation, end_time)
-    sdfg = convert_to_sdf(cosimulation)
-    return sdf.sequential_run(sdfg, termination)
+    return execute_until(cosimulation, termination)
 
 
 def get_signal_samples(
@@ -397,12 +402,20 @@ def _sdf_output_monitor(
     return agents, buffers
 
 
-def evaluate(cosimulation: Cosimulation, end_time: Fraction) -> CommunicationDefect:
+def evaluate_until(
+        cosimulation: Cosimulation,
+        termination: sdf.Termination
+) -> CommunicationDefect:
     """Evaluates the co-simulation and returns the defects"""
-    termination = time_expired(cosimulation, end_time)
     intermediate_values: IntermediateValues = dict()
     sdfg = _sdf_output_monitor(cosimulation, intermediate_values)
     results = sdf.sequential_run(sdfg, termination)
     output_defect = _calculate_output_defect(cosimulation, intermediate_values, results)
     connection_defect = _calculate_connection_defect(cosimulation, results)
     return CommunicationDefect(connection_defect, output_defect)
+
+
+def evaluate(cosimulation: Cosimulation, end_time: Fraction) -> CommunicationDefect:
+    """Evaluates the co-simulation and returns the defects"""
+    termination = time_expired(cosimulation, end_time)
+    return evaluate_until(cosimulation, termination)

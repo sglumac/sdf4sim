@@ -376,7 +376,7 @@ def three_tolerances_auto(end_time=Fraction(20), fig_file=None):
     csnet = cs_network(generate_parameters(non_default))
 
     cosimulations = list()
-    tolerances = [1., 0.5, 0.25]
+    tolerances = [0.9, 0.3, 0.1]
     for tol in tolerances:
         cosimulation, results = _auto_results_only(csnet, end_time, tol)
         cosimulations.append(cosimulation)

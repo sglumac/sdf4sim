@@ -54,13 +54,16 @@ def vector_to_tokens(model_tokens, vector):
     return tokens
 
 
-def calculate_simulator_defects(slaves, defect: cs.CommunicationDefect):
+def calculate_simulator_defects(slaves, connections, defect: cs.CommunicationDefect):
     """Calculates max of output and connection defect for each simulator"""
     return {
         name: max(
+            max(
+                value for port, value in defect.connection.items()
+                if connections[port].slave == name
+            ),
             max(value for port, value in defect.connection.items() if port.slave == name),
             max(value for port, value in defect.output.items() if port.slave == name),
-
         )
         for name in slaves
     }
@@ -70,9 +73,10 @@ def token_evaluation(csnet, step_sizes, rate_converters, model_tokens, vector):
     """Evaluates tokens with two iterations"""
     tokens = vector_to_tokens(model_tokens, vector)
     cosim = csnet, step_sizes, rate_converters, tokens
-    slaves, _ = csnet
-    end_time = 2 * max(step_sizes.values())
-    simulator_defects = calculate_simulator_defects(slaves, cs.evaluate(cosim, end_time))
+    slaves, connections = csnet
+    simulator_defects = calculate_simulator_defects(
+        slaves, connections, cs.evaluate_until(cosim, sdf.iterations_expired(1))
+    )
     return max(simulator_defects.values())
 
 
@@ -123,7 +127,9 @@ def find_configuration(
     while True:
         initial_tokens = find_initial_tokens(csnet, step_sizes, rate_converters)
         cosim = csnet, step_sizes, rate_converters, initial_tokens
-        simulator_defects = calculate_simulator_defects(slaves, cs.evaluate(cosim, end_time))
+        simulator_defects = calculate_simulator_defects(
+            slaves, connections, cs.evaluate(cosim, end_time)
+        )
         tolerance_satisfied = all(defect < tolerance for defect in simulator_defects.values())
         num_iter += 1
         if not tolerance_satisfied and num_iter < max_iter:
@@ -132,6 +138,8 @@ def find_configuration(
                 for name, step_size in step_sizes.items()
             }
         else:
+            defect = cs.evaluate(cosim, end_time)
+            assert max(max(defect.output.values()), max(defect.connection.values())) < tolerance
             break
 
     return csnet, step_sizes, rate_converters, initial_tokens
