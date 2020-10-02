@@ -257,6 +257,33 @@ def sil_comparison(K=1., T1=5., Ts=1.):
     ''')
 
 
+def _plot_csw_signals(cosimulation, results, axs):
+    """Plots the output of the control co-simulation"""
+    signals = [('PI', 'y'), ('PT2', 'y')]
+    for signal, ax, output in zip(signals, axs, range(1, 3)):
+        label_str = r'$\gamma_{' + str(output) + '1}[k_' + str(output) + ']$'
+        instance, port = signal
+        ts, vals = cs.get_signal_samples(cosimulation, results, instance, port)
+        ax.stem(ts, vals, label=label_str,
+                markerfmt='ks', basefmt='C7--', linefmt='C7--')  # , use_line_collection=True)
+        ax.legend()
+    ax.set_xlim([0, 20])
+    ax.set_xlabel('time [s]')
+
+
+def gauss_jacobi_csw_run(fig_file=None):
+    """The demo function"""
+    K, T1, Ts = (1., 5., 1.)
+    h = Fraction(1, 2)
+    end_time = Fraction(20)
+    cosim = gauss_jacobi(K, T1, Ts, h)
+    graph = cs.convert_to_sdf(gauss_jacobi(K, T1, Ts, h))
+    results = sdf.sequential_run(graph, cs.time_expired(cosim, end_time))
+    fig, axs = plt.subplots(2, 1, sharex=True)
+    _plot_csw_signals(cosim, results, axs)
+    show_figure(fig, fig_file)
+
+
 def automatic_configuration(tolerance=1e-3, fig_file=None):
     """The demo function"""
     K, T1, Ts = (1., 5., 1.)
@@ -270,6 +297,22 @@ def automatic_configuration(tolerance=1e-3, fig_file=None):
     fig.set_size_inches(10, 5)
     plot_cs_output(cosimulation, results, axs)
     show_figure(fig, fig_file)
+
+
+def mil_mbd(K=1., T1=5., Ts=1.)-> cs.Cosimulation:
+    """The demo function"""
+    y1, _ = analytic_solution(K, T1, Ts)
+    step_sizes = {'PI': Fraction(1, 1000), 'PT2': Fraction(1, 500)}
+    csnet = cs_network(K, T1, Ts)
+    _, connections = csnet
+    tokens = autoconfig.null_jacobi_initial_tokens(connections, step_sizes)
+    return csnet, step_sizes, rate_converters(), tokens
+
+
+def example_mil_mbd(fig_file=None):
+    """The demo function"""
+    _, _, _, tokens = mil_mbd()
+    print(tokens)
 
 
 def main():

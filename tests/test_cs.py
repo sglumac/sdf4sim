@@ -141,3 +141,9 @@ def test_defect_calculation():
 
     assert defect.output['Ramp1', 'y'] == pytest.approx(slope1 * step1)
     assert defect.output['Ramp2', 'y'] == pytest.approx(slope2 * step2)
+
+
+def test_csw_control():
+    """Tests to see if the image was created"""
+    example.control.gauss_jacobi_csw_run('csw_control.pdf')
+    assert path.isfile('csw_control.pdf')
