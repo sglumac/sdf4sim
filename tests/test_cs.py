@@ -147,3 +147,9 @@ def test_csw_control():
     """Tests to see if the image was created"""
     example.control.gauss_jacobi_csw_run('csw_control.pdf')
     assert path.isfile('csw_control.pdf')
+
+
+def test_mbd():
+    """Tests to see if the image was created"""
+    example.control.mbd_comparison('mbd_comparison.pdf')
+    assert path.isfile('mbd_comparison.pdf')

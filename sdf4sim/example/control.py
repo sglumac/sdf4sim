@@ -22,6 +22,7 @@ def slaves(K, T1, Ts) -> cs.SimulatorContructors:
         nonlocal cur_dir, K, T1, Ts
         pi_path = path.join(cur_dir, 'PI.fmu')
         KR, TI = controller_parameters(K, T1, Ts)
+        print(f'KR = {KR}, TI = {TI}')
         pi = cs.prepare_slave('PI', pi_path)
         pi.fmu.enterInitializationMode()
         pivrs = [
@@ -267,8 +268,8 @@ def _plot_csw_signals(cosimulation, results, axs):
         ax.stem(ts, vals, label=label_str,
                 markerfmt='ks', basefmt='C7--', linefmt='C7--')  # , use_line_collection=True)
         ax.legend()
-    ax.set_xlim([0, 20])
-    ax.set_xlabel('time [s]')
+    axs[1].set_xlim([0, 20])
+    axs[1].set_xlabel('time [s]')
 
 
 def gauss_jacobi_csw_run(fig_file=None):
@@ -299,9 +300,8 @@ def automatic_configuration(tolerance=1e-3, fig_file=None):
     show_figure(fig, fig_file)
 
 
-def mil_mbd(K=1., T1=5., Ts=1.)-> cs.Cosimulation:
+def cosimulation_mbd(K=1., T1=5., Ts=1.)-> cs.Cosimulation:
     """The demo function"""
-    y1, _ = analytic_solution(K, T1, Ts)
     step_sizes = {'PI': Fraction(1, 1000), 'PT2': Fraction(1, 500)}
     csnet = cs_network(K, T1, Ts)
     _, connections = csnet
@@ -309,10 +309,80 @@ def mil_mbd(K=1., T1=5., Ts=1.)-> cs.Cosimulation:
     return csnet, step_sizes, rate_converters(), tokens
 
 
-def example_mil_mbd(fig_file=None):
+def _get_comparison_signals(cosimulation, results, samples, xil):
+    """A helper function"""
+    tpis, vpis = cs.get_signal_samples(cosimulation, results, 'PI', 'y')
+    tpt2s, vpt2s = cs.get_signal_samples(cosimulation, results, 'PT2', 'y')
+    samples[xil] = tpis, vpis, tpt2s, vpt2s
+
+
+def _plot_comparison_signals(samples, fig_file):
+    """A helper function"""
+    fig, (axpi, axpt2) = plt.subplots(2, 1, sharex=True)
+    labels = {
+        'MIL': r'$G^{MIL}$, $\widetilde{y}_',
+        'SIL1': r'$G^{SIL_1}$, $\widetilde{y}_',
+        'SIL2': r'$G^{SIL_2}$, $\widetilde{y}_'
+    }
+    alphas = {
+        'MIL': 1.,
+        'SIL1': 0.7,
+        'SIL2': 0.7
+    }
+    formats = {
+        'MIL': 'r--',
+        'SIL1': 'b',
+        'SIL2': 'g'
+    }
+    for xil in samples.keys():
+        tpis, vpis, tpt2s, vpt2s = samples[xil]
+        axpi.plot(tpis, vpis, formats[xil], label=labels[xil] + '{11}$', alpha=alphas[xil])
+        axpt2.plot(tpt2s, vpt2s, formats[xil], label=labels[xil] + '{21}$', alpha=alphas[xil])
+
+    axpi.set_ylabel('Controller output')
+    axpt2.set_ylabel('Process output')
+    axpi.legend()
+    axpt2.legend()
+    axpt2.set_xlabel('time [s]')
+    axpi.set_xlim([0, 20])
+    show_figure(fig, fig_file)
+
+
+def mbd_comparison(fig_file=None):
     """The demo function"""
-    _, _, _, tokens = mil_mbd()
-    print(tokens)
+    end_time = Fraction(20)
+    samples = dict()
+
+    cosimulation = cosimulation_mbd()
+    mil = cs.convert_to_sdf(cosimulation)
+    _get_comparison_signals(
+        cosimulation,
+        sdf.sequential_run(mil, cs.time_expired(cosimulation, end_time)),
+        samples, 'MIL'
+    )
+
+    KR, TI = 2., 5.
+    _, step_sizes, _, _ = cosimulation
+    sil1 = cs.convert_to_sdf(cosimulation)
+    agents, _ = sil1
+    agents['PI'] = SoftwarePi(KR, TI, step_sizes['PI'])  # replace M by S1
+    _get_comparison_signals(
+        cosimulation,
+        sdf.sequential_run(sil1, cs.time_expired(cosimulation, end_time)),
+        samples, 'SIL1'
+    )
+
+    KR, TI = 2.5, 5.
+    sil2 = cs.convert_to_sdf(cosimulation)
+    agents, _ = sil2
+    agents['PI'] = SoftwarePi(KR, TI, step_sizes['PI'])  # replace M by S2
+    _get_comparison_signals(
+        cosimulation,
+        sdf.sequential_run(sil2, cs.time_expired(cosimulation, end_time)),
+        samples, 'SIL2'
+    )
+
+    _plot_comparison_signals(samples, fig_file)
 
 
 def main():
