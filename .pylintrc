@@ -271,6 +271,11 @@ good-names=i,
            a,
            b,
            c,
+           x0,
+           xEnd,
+           _J,
+           omegaEnd,
+           d,
            _
 
 # Include a hint for the correct naming format with invalid-name.
