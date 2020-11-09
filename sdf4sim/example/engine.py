@@ -2,7 +2,7 @@
 
 from typing import NamedTuple, Callable, Dict, Any
 from fractions import Fraction
-from itertools import takewhile, count
+from itertools import takewhile, count, product
 import matplotlib.pyplot as plt  # pylint: disable=import-error
 import numpy as np  # pylint: disable=import-error
 from sdf4sim import cs, sdf
@@ -213,7 +213,7 @@ def analytic_solution(parameters: EngineExperiment, h=Fraction(1, 2), end_time=F
     return ts, omegas, taus
 
 
-def get_all_responses(parameters: EngineExperiment, h=Fraction(1, 10), end_time=Fraction(10, 1)):
+def get_cs_responses(parameters: EngineExperiment, h=Fraction(1, 10), end_time=Fraction(10, 1)):
     """Three co-simulations and the analytic response"""
 
     cosimulations = {
@@ -222,17 +222,12 @@ def get_all_responses(parameters: EngineExperiment, h=Fraction(1, 10), end_time=
         'GJ': gauss_jacobi(parameters, h)
     }
 
-    ts, omegas, taus = analytic_solution(parameters, h, end_time)
-    responses = {
-        ('analytic', 'inertia', 'omega'): (ts, omegas),
-        ('analytic', 'engine', 'tau'): (ts, taus),
-    }
-
     # signals = [
     #     ('engine', 'tau'), ('engine_tau_oscillator_tau', 'y'),
     #     ('oscillator_omega_engine_omega', 'y'), ('inertia', 'omega')
     # ]
     signals = [('engine', 'tau'), ('inertia', 'omega')]
+    responses = dict()
 
     for title, cosimulation in cosimulations.items():
         results = cs.execute(cosimulation, end_time)
@@ -246,7 +241,7 @@ def get_all_responses(parameters: EngineExperiment, h=Fraction(1, 10), end_time=
 def demo(fig_file=None):
     """Demo function"""
     default_parameters = generate_parameters(dict())
-    responses = get_all_responses(default_parameters)
+    responses = get_cs_responses(default_parameters)
 
     fig, axs = plt.subplots(2, 1, sharex=True)
     for lbl, (ts, vals) in responses.items():
@@ -258,5 +253,65 @@ def demo(fig_file=None):
     show_figure(fig, fig_file)
 
 
+def _get_error_measures(parameters, hs, end_time, errors, signals):
+    """helper function"""
+
+    for h in hs:
+        print(f'h = {h}')
+        sol = analytic_solution(parameters, h, end_time)
+        analytic = {
+            ('inertia', 'omega'): sol[1],
+            ('engine', 'tau'): sol[2],
+        }
+        responses = get_cs_responses(parameters, h)
+        for title in ['GS12', 'GS21', 'GJ']:
+            for simulator, port in signals:
+                _, vals = responses[title, simulator, port]
+                abserrs = np.abs(np.array(vals) - analytic[simulator, port][1:])
+                errors[title, simulator, port, 'hs'].append(h)
+                errors[title, simulator, port, 'maxabs'].append(float(max(abserrs)))
+                errors[title, simulator, port, 'intabs'].append(float(np.cumsum(abserrs)[-1] * h))
+
+    return errors
+
+
+def plot_quality_evaluation(fig_file=None):
+    """Show different quality evaluations"""
+    parameters = generate_parameters(dict())
+    end_time = Fraction(10, 1)
+    hs = [Fraction(1, den) for den in 2 ** np.arange(1, 9)]
+
+    signals = [('engine', 'tau'), ('inertia', 'omega')]
+    errvals = ['maxabs', 'intabs']
+    errors = {
+        (title, simulator, port, k): []
+        for title in ['GS12', 'GS21', 'GJ']
+        for simulator, port in signals
+        for k in ['hs'] + errvals
+    }
+    _get_error_measures(parameters, hs, end_time, errors, signals)
+
+    fig, axs = plt.subplots(2, 2, sharex=True)
+    dictaxs = {
+        (simulator, port, errval): axs[i][j]
+        for i, (simulator, port) in enumerate(signals)
+        for j, errval in enumerate(errvals)
+    }
+
+    for title, (simulator, port) in product(['GS12', 'GS21', 'GJ'], signals):
+        for errval in errvals:
+            dictaxs[simulator, port, errval].plot(
+                errors[title, simulator, port, 'hs'],
+                errors[title, simulator, port, errval],
+                label=f'{title}-{errval}'
+            )
+
+    for ax in axs.flatten():
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        ax.legend()
+    show_figure(fig, fig_file)
+
+
 if __name__ == '__main__':
-    demo()
+    plot_quality_evaluation()
