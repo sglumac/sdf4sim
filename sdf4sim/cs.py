@@ -214,13 +214,16 @@ def execute(cosimulation: Cosimulation, end_time: Fraction) -> sdf.Results:
 
 def get_signal_samples(
         cosimulation: Cosimulation, results: sdf.Results,
-        simulator: InstanceName, output: PortLabel
+        simulator: InstanceName, port: PortLabel
 ) -> Tuple[TimeStamps, Values]:
     """Gets the time and value samples of the signal obtained at the specified port"""
     _, hs, _, _ = cosimulation
     h = hs[simulator]
     _, buffers = convert_to_sdf(cosimulation)
-    buf_lbl = next(buffer.dst for buffer in buffers if buffer.src == sdf.Src(simulator, output))
+    if any(buffer.dst for buffer in buffers if buffer.src == sdf.Src(simulator, port)):
+        buf_lbl = next(buffer.dst for buffer in buffers if buffer.src == sdf.Src(simulator, port))
+    else:
+        buf_lbl = next(buffer.dst for buffer in buffers if buffer.dst == sdf.Dst(simulator, port))
     vals = results.tokens[buf_lbl]
     ts = [h * (i + 1) for i in range(len(vals))]
     return ts, vals
