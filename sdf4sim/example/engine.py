@@ -30,7 +30,7 @@ EngineExperiment = NamedTuple('EngineExperiment', [
 
 def impulse(t: float) -> float:
     """Simple 1 sec impulse"""
-    return 1. if t < 1. else 0.
+    return 1. if t >= 1. and t < 2. else 0.
 
 
 def generate_parameters(non_default: Dict[str, Dict[str, float]]) -> EngineExperiment:
@@ -40,7 +40,7 @@ def generate_parameters(non_default: Dict[str, Dict[str, float]]) -> EngineExper
             'inertia': 10.0, 'damping': 10.0, 'omega0': 0.,
         },
         'engine': {
-            'w_alpha': 1., 'w_omega': 1,
+            'w_alpha': 1., 'w_omega': 5.,
         },
         'alpha': {
             'source': impulse
@@ -116,7 +116,7 @@ class Alpha(cs.Simulator):
     def __init__(self, parameters: AlphaParameters, step_size: Fraction):
         self._step_size = step_size
         self._signal = parameters.source
-        self._t = 0.
+        self._t = Fraction(0)
 
     @property
     def inputs(self):
@@ -180,7 +180,7 @@ def gauss_jacobi(parameters: EngineExperiment, h=Fraction(1, 2)) -> cs.Cosimulat
     step_sizes: cs.StepSizes = {'engine': h, 'inertia': h, 'alpha': h}
     tokens: cs.InitialTokens = {
         sdf.Dst('engine', 'omega'): [0.],
-        sdf.Dst('engine', 'alpha'): [],
+        sdf.Dst('engine', 'alpha'): [0.],
         sdf.Dst('inertia', 'tau'): [0.],
     }
     return cs_network(parameters), step_sizes, rate_converters(), tokens
@@ -195,19 +195,22 @@ def analytic_solution(parameters: EngineExperiment, h=Fraction(1, 2), end_time=F
     lmbda = - (d - w_omega) / parameters.inertia.inertia
 
     omega0 = parameters.inertia.omega0
-    omegainf0 = w_alpha * 1. / (d - w_omega)
+    omega1 = first_order_response(omega0, 0, lmbda, 1.)
+    omegainf2 = w_alpha * 1. / (d - w_omega)
+    omega2 = first_order_response(omega0, omegainf2, lmbda, 1.)
 
-    omega1 = first_order_response(omega0, omegainf0, lmbda, 1.)
-    omegainf1 = 0.
+    def omega_calc(t):
+        if t < 1:
+            return 0.
+        elif t < 2:
+            return first_order_response(omega1, omegainf2, lmbda, t - 1)
+        else:
+            return first_order_response(omega2, 0, lmbda, t - 2)
 
     ts = list(takewhile(lambda tp: tp <= end_time, count(0, h)))
-    omegas = [
-        first_order_response(omega0, omegainf0, lmbda, t) if t <= 1.
-        else first_order_response(omega1, omegainf1, lmbda, t - 1.)
-        for t in ts
-    ]
+    omegas = list(map(omega_calc, ts))
     taus = [
-        w_omega * omega + (w_alpha if t <= 1 else 0)
+        w_omega * omega + (w_alpha if (t >= 1 and t < 2) else 0)
         for omega, t in zip(omegas, ts)
     ]
     return ts, omegas, taus
@@ -262,7 +265,7 @@ def _get_power_diff(title, responses, analytic):
     return analyticp - csp
 
 
-def _get_power_residual(title, responses, h):
+def _total_power_residual(title, responses, h):
     """helper"""
     num = min(
         len(responses[title, 'inertia', 'omega'][1]),
@@ -270,45 +273,17 @@ def _get_power_residual(title, responses, h):
         len(responses[title, 'engine', 'omega'][1]),
         len(responses[title, 'engine', 'tau'][1]),
     )
-    pinertia = np.array(responses[title, 'inertia', 'omega'][1][:num]) * \
-        np.array(responses[title, 'inertia', 'tau'][1][:num])
-    pengine = np.array(responses[title, 'engine', 'omega'][1][:num]) * \
-        np.array(responses[title, 'engine', 'tau'][1][:num])
-
-    return float(np.cumsum(np.abs(pengine - pinertia))[-1] * h)
-
-
-def _get_abs_power_residual(title, responses, h):
-    """helper"""
-    num = min(
-        len(responses[title, 'inertia', 'omega'][1]),
-        len(responses[title, 'inertia', 'tau'][1]),
-        len(responses[title, 'engine', 'omega'][1]),
-        len(responses[title, 'engine', 'tau'][1]),
-    )
-    pinertia = np.array(responses[title, 'inertia', 'omega'][1][:num]) * \
-        np.array(responses[title, 'inertia', 'tau'][1][:num])
-    pengine = np.array(responses[title, 'engine', 'omega'][1][:num]) * \
-        np.array(responses[title, 'engine', 'tau'][1][:num])
-
-    return float(np.abs(np.cumsum(pengine - pinertia)[-1]) * h)
+    effort = np.array(responses[title, 'inertia', 'tau'][1][:num])
+    flow = np.array(responses[title, 'engine', 'omega'][1][:num])
+    effort_defect = effort - responses[title, 'engine', 'tau'][1][:num]
+    flow_defect = flow - responses[title, 'inertia', 'omega'][1][:num]
+    power_residual = effort_defect * flow - effort * flow_defect
+    return float(np.cumsum(np.abs(power_residual))[-1] * h)
 
 
-def _energy_diff(title, responses, analytic, h):
-    """helper"""
-    return float(np.abs(np.cumsum(_get_power_diff(title, responses, analytic))[-1] * h))
-
-
-def _abs_energy_diff(title, responses, analytic, h):
+def _total_power_error(title, responses, analytic, h):
     """helper"""
     return float(np.cumsum(np.abs(_get_power_diff(title, responses, analytic)))[-1] * h)
-
-
-def _get_abs_energy(title, analytic, h):
-    """helper"""
-    _, omega, tau = analytic
-    analyticp = np.array(omega[1:]) * np.array(tau[1:])
-    return float(np.cumsum(np.abs(analyticp)[-1] * h))
 
 
 def _get_error_measures(parameters, hs, end_time, errors, signals):
@@ -325,13 +300,9 @@ def _get_error_measures(parameters, hs, end_time, errors, signals):
             for simulator, port in signals:
                 _, vals = responses[title, simulator, port]
                 abserrs = np.abs(np.array(vals) - analytic[simulator, port][1:])
-                errors[title, simulator, port, 'maxabs'].append(float(max(abserrs)))
-                errors[title, simulator, port, 'intabs'].append(float(np.cumsum(abserrs)[-1] * h))
-            errors[title, 'energyDiff'].append(_energy_diff(title, responses, sol, h))
-            errors[title, 'absEnergyDiff'].append(_abs_energy_diff(title, responses, sol, h))
-            errors[title, 'powerResidual'].append(_get_power_residual(title, responses, h))
-            errors[title, 'absPowerResidual'].append(_get_abs_power_residual(title, responses, h))
-            errors[title, 'absEnergy'].append(_get_abs_energy(title, sol, h))
+                errors[title, simulator, port].append(float(np.cumsum(abserrs)[-1] * h))
+            errors[title, 'Total power error'].append(_total_power_error(title, responses, sol, h))
+            errors[title, 'Total power residual'].append(_total_power_residual(title, responses, h))
 
     return errors
 
@@ -343,48 +314,69 @@ def plot_quality_evaluation(fig_file=None):
     hs = [Fraction(1, den) for den in 2 ** np.arange(1, 9)]
 
     signals = [('engine', 'tau'), ('inertia', 'omega')]
-    errvals = ['maxabs', 'intabs']
     errors = {
-        (title, simulator, port, k): []
+        (title, simulator, port): []
         for title in ['GS12', 'GS21', 'GJ']
         for simulator, port in signals
-        for k in errvals
     }
     for title in ['GS12', 'GS21', 'GJ']:
-        errors[title, 'energyDiff'] = []
-        errors[title, 'absEnergyDiff'] = []
-        errors[title, 'powerResidual'] = []
-        errors[title, 'absPowerResidual'] = []
-        errors[title, 'absEnergy'] = []
+        errors[title, 'Total power error'] = []
+        errors[title, 'Total power residual'] = []
     _get_error_measures(parameters, hs, end_time, errors, signals)
 
-    fig, axs = plt.subplots(2, 7, sharex=True, sharey=True)
+    fig, axs = plt.subplots(4, 1, sharex=True)
     dictaxs = {
-        (simulator, port, errval): axs[i][j]
+        (simulator, port): axs[i]
         for i, (simulator, port) in enumerate(signals)
-        for j, errval in enumerate(errvals)
     }
 
     for title, (simulator, port) in product(['GS12', 'GS21', 'GJ'], signals):
-        for errval in errvals:
-            dictaxs[simulator, port, errval].plot(
-                hs,
-                errors[title, simulator, port, errval],
-                label=f'{title}-{errval}'
-            )
+        dictaxs[simulator, port].plot(
+            hs,
+            errors[title, simulator, port],
+            label=f'{title}'
+        )
+        dictaxs[simulator, port].set_title(f'Global error {port}')
     for title in ['GS12', 'GS21', 'GJ']:
-        axs[0][2].plot(hs, errors[title, 'energyDiff'], label=f'{title}-energyDiff')
-        axs[0][3].plot(hs, errors[title, 'absEnergyDiff'], label=f'{title}-absEnergyDiff')
-        axs[0][4].plot(hs, errors[title, 'powerResidual'], label=f'{title}-powerResidual')
-        axs[0][5].plot(hs, errors[title, 'absPowerResidual'], label=f'{title}-absPowerResidual')
-        axs[0][6].plot(hs, errors[title, 'absEnergy'], label=f'{title}-absEnergy')
+        axs[2].plot(hs, errors[title, 'Total power error'], label=f'{title}')
+        axs[3].plot(hs, errors[title, 'Total power residual'], label=f'{title}')
 
-    for ax in axs.flatten():
+    axs[2].set_title('Total power error')
+    axs[3].set_title('Total power residual')
+
+    for ax in axs:
         ax.set_xscale('log')
         ax.set_yscale('log')
         ax.legend()
     show_figure(fig, fig_file)
 
 
+def plot_responses():
+    """A function that plots time based responses"""
+    parameters = generate_parameters(dict())
+    h = Fraction(1, 10)
+    end_time = Fraction(10, 1)
+    responses = get_cs_responses(parameters, h)
+    sol = analytic_solution(parameters, h, end_time)
+
+    responses['analytic', 'inertia', 'omega'] = sol[0], sol[1]
+    responses['analytic', 'engine', 'tau'] = sol[0], sol[2]
+
+    _, axs = plt.subplots(2, 1, sharex=True)
+    axOmega, axTau = axs
+    for title in ['GS12', 'GS21', 'GJ', 'analytic']:
+        ts, omegas = responses[title, 'inertia', 'omega']
+        axOmega.plot(ts, omegas, label=title, alpha=0.4)
+        ts, taus = responses[title, 'engine', 'tau']
+        axTau.plot(ts, taus, label=title, alpha=0.4)
+    for ax in axs:
+        ax.legend()
+    axTau.set_title('Velocity')
+    axTau.set_title('Torque')
+    plt.show()
+
+
+
 if __name__ == '__main__':
     plot_quality_evaluation()
+    plot_responses()
