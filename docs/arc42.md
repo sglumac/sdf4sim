@@ -34,7 +34,7 @@ The code is **not designed for**
 
 ## Business Context {#_business_context}
 
-**\<Diagram or Table>**
+![alt text](http://www.plantuml.com/plantuml/png/SoWkIImgAStDuOfsoomgBb58piyjoCzBpIk9vOfspCiloKWjGX9JI2nMS0RoZBZWOc2-CH8_sYUnk2Gc3rEJ2PT3QbuAq2u0 "Logo Title Text 1")
 
 **\<optionally: Explanation of external domain interfaces>**
 
