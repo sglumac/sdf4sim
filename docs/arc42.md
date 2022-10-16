@@ -30,6 +30,8 @@ The software is written as the Python package sdf4sim available from [PyPI](http
 
 # Building Block View {#section-building-block-view}
 
+![Class diagram](http://www.plantuml.com/plantuml/svg/TOqzZeCm44RxESNKAvapi4knscQBa0jOC4ui_8CyOo8bpjqZI8HG8ihFx_bDpQAJPEy0EgUPiUEgTNeYl06YyHdk0DoRwlj4GL2fBvpNRzBZUNd_oSPGuZS2SyRwxBJ4XAKeLGgk6LYFlCZMNlusaP_Rnh2H_aakCGqVXb9BGcXixPLuXn-qK1F3H4aexKb_mOhLxXW72WnGK-YpTmy0)
+
 ## Whitebox Overall System {#_whitebox_overall_system}
 
 ***\<Overview Diagram>***
