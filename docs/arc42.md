@@ -20,7 +20,7 @@ The code is **not designed for**
 
 ## Business Context {#_business_context}
 
-![alt text](http://www.plantuml.com/plantuml/png/SoWkIImgAStDuOfsoomgBb58piyjoCzBpIk9vOfspCiloKWjGX9JI2nMS0RoZBZWOc2-CH8_sYUnk2Gc3rEJ2PT3QbuAq2u0 "Logo Title Text 1")
+![Business Context](http://www.plantuml.com/plantuml/png/NP3DRYen38NtynIvhBWIp6nOTOM4sbMHK2dhAYGUnbBYZ6n7qBUl1zg2klFFELzEl1Rrh3MdvXzII3M26rH7UUewzkVsX3hKOnNWK4Y1j0qbTsFoD7cMeZ7XiTkibhjfTDY-TjcB0jleOsCEZmJSZXE_sG5BeRbWVhwCmBfmiptcchnY8NURpVutpVxJ27akiL-PrbJVrSpAzm6SNFVE0lLugWpYF4K75mXLhT6hXCB0XKeL5xrwrwToTdtXstQ4W3r2DCPIxX5WYe0PIAz41grCuiJdCPbOy4G-IJjbV8Fq-95xrfVjGQo_GzM02wSb0NiAy6l-SJoUuyzBfbq3HJlU5m00)
 
 **\<optionally: Explanation of external domain interfaces>**
 
