@@ -1,17 +1,3 @@
-# 
-
-This documentation is based on the modification of the arc42 template. Some of the content suggested by the original template is not displayed.
-
-**About arc42**
-
-arc42, the template for documentation of software and system
-architecture.
-
-Template Version 8.1 EN. (based upon AsciiDoc version), May 2022
-
-Created, maintained and © by Dr. Peter Hruschka, Dr. Gernot Starke and
-contributors. See <https://arc42.org>.
-
 # Introduction and Goals
 
 The main goal of this repository is to demonstrate the results of research conducted in [(Glumac 2022)](#glumac2022). The research introduced the use of a synchronous data flow ([(Lee 1987)](#lee1987)) as a computational model for non-iterative co-simulation masters [(Kübler 2000)](#kubler2000). The analysis of the co-simulation quality is based on the numerical defect analysis [(Enright 2000)](#enright2000). Co-simulation quality estimates are used to automatically configure a co-simulation network.
@@ -225,3 +211,17 @@ Enright, W. H. "Continuous numerical methods for ODEs with defect control." Jour
 
 <a id="blochwitz2000">(Blochwitz 2000)</a> 
 Blochwitz, Torsten, Martin Otter, Martin Arnold, Constanze Bausch, Christoph Clauß, Hilding Elmqvist, Andreas Junghanns et al. "The functional mockup interface for tool independent exchange of simulation models." In Proceedings of the 8th international Modelica conference, pp. 105-114. Linköping University Press, 2011.
+
+# 
+
+This documentation is based on the modification of the arc42 template. Some of the content suggested by the original template is not displayed.
+
+**About arc42**
+
+arc42, the template for documentation of software and system
+architecture.
+
+Template Version 8.1 EN. (based upon AsciiDoc version), May 2022
+
+Created, maintained and © by Dr. Peter Hruschka, Dr. Gernot Starke and
+contributors. See <https://arc42.org>.
