@@ -12,11 +12,25 @@ Template Version 8.1 EN. (based upon AsciiDoc version), May 2022
 Created, maintained and © by Dr. Peter Hruschka, Dr. Gernot Starke and
 contributors. See <https://arc42.org>.
 
-# Introduction and Goals {#section-introduction-and-goals}
+# Introduction and Goals
 
-The main goal of this repository is to demonstrate the results of research conducted in [(Glumac 2022)](#1).
+The main goal of this repository is to demonstrate the results of research conducted in [(Glumac 2022)](#glumac2022). The research introduced the use of a synchronous data flow ([(Lee 1987)](#lee1987)) as a computational model for non-iterative co-simulation masters [(Kübler 2000)](#kubler2000). The analysis of the co-simulation quality is based on the numerical defect analysis [(Enright 2000)](#enright2000). Co-simulation quality estimates are used to automatically configure a co-simulation network.
 
-# System Scope and Context {#section-system-scope-and-context}
+## Requirements Overview
+
+A co-simulation network consists of Functional Mock-up Units [(blochwitz2000)](#blochwitz2000). The repository demonstrates how to automatically configure and simulate a co-simulation network for a given tolerance.
+
+## Quality Goals
+
+1. Verifiability (of the conclusions of the thesis) - The conclusions of the thesis should be easily verified with the code in the repository.
+2. Extensibility (for the future research) - There should be an easy way to test additional hypotheses related to the research described.
+
+
+The code is **not designed for**
+* Performance - The code is intended to verify the research results. The target model of the calculation is fixed and the results should be the same for less CPU intensive code. This decision allows the use of Python.
+
+
+# System Scope and Context
 
 ## Business Context {#_business_context}
 
@@ -196,5 +210,18 @@ Mapping of Building Blocks to Infrastructure
 +-----------------------+-----------------------------------------------+
 
 # References
-<a id="1">(Glumac 2022)</a> 
-Glumac, Slaven. Automated configuring of non-iterative co-simulation modeled by synchronous data flow. Diss. University of Zagreb. Faculty of Electrical Engineering and Computing. Department of Control and Computer Engineering, 2022.
+
+<a id="glumac2022">(Glumac 2022)</a> 
+Glumac, Slaven. "Automated configuring of non-iterative co-simulation modeled by synchronous data flow." PhD diss., University of Zagreb. Faculty of Electrical Engineering and Computing. Department of Control and Computer Engineering, 2022.
+
+<a id="lee1987">(Lee 1987)</a> 
+Lee, Edward A., and David G. Messerschmitt. "Synchronous data flow." Proceedings of the IEEE 75, no. 9 (1987): 1235-1245.
+
+<a id="kubler2000">(Kübler 2000)</a> 
+Kübler, Ralf, and Werner Schiehlen. "Two methods of simulator coupling." Mathematical and computer modelling of dynamical systems 6, no. 2 (2000): 93-113.
+
+<a id="enright2000">(Enright 2000)</a> 
+Enright, W. H. "Continuous numerical methods for ODEs with defect control." Journal of computational and applied mathematics 125, no. 1-2 (2000): 159-170.
+
+<a id="blochwitz2000">(Blochwitz 2000)</a> 
+Blochwitz, Torsten, Martin Otter, Martin Arnold, Constanze Bausch, Christoph Clauß, Hilding Elmqvist, Andreas Junghanns et al. "The functional mockup interface for tool independent exchange of simulation models." In Proceedings of the 8th international Modelica conference, pp. 105-114. Linköping University Press, 2011.
