@@ -26,15 +26,7 @@ The code is **not designed for**
 
 ## Technical Context
 
-Python package
-
-**\<Diagram or Table>**
-
-**\<optionally: Explanation of technical interfaces>**
-
-**\<Mapping Input/Output to Channels>**
-
-# Solution Strategy {#section-solution-strategy}
+The software is written as the Python package sdf4sim available from [PyPI](https://pypi.org/project/sdf4sim/).
 
 # Building Block View {#section-building-block-view}
 
