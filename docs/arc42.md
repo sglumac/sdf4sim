@@ -22,89 +22,16 @@ The code is **not designed for**
 
 ![Business Context](http://www.plantuml.com/plantuml/svg/hP6_Rjj03CPtFGNhoG5iQSdKAO2BJ0rWnCrSC7UKTEZz4KWUdFJfIobjXTWekcGZZ-J77x-x4qNMccBJHEeLj027OLJmWSbfABbfFeNiOlK4e-eadxkEyTmEGSVwN8NObQoKjNKbTLF4FAljHNqCpztXTd-SdvuUldO9HOdjwVl19Z1audPQDX-9fUIjaoEZxNIqWysXx4yXrOWp0xmLvf1uOzLpgT5333ze9lO54FeQuojWrP9GoOChUra53B8FG-KbszmqpUdLQD9MV7zhRIRvEvhLluq4ijJ_pf40PW_qGgwg9RgqP3TooQKAU5H3YEKCszEN-nle2x_rJEH27wvuw6KY3ibyMtIPj78M44nJj6O9GyOehP6kxZoI4B8RhzpvK_WeRnufllkCrQJxXoUnV9rLks5dUo8nPaSsRSEhg---zEAu7PZ3asK_oM9p3GR6QLm1rdl_2_0FfKkOLV4IPjvwHzdN57y1)
 
-**\<optionally: Explanation of external domain interfaces>**
-
 ## Technical Context
 
 The software is written as the Python package sdf4sim available from [PyPI](https://pypi.org/project/sdf4sim/).
 
-# Building Block View {#section-building-block-view}
+# Building Block View
+
+## Class Relationship Diagram
 
 ![White Box](http://www.plantuml.com/plantuml/svg/VP1DSiCW38NtEeKka9mXRHRT9xa04ukMAJyU9BoeuUuTcmv3pRHBz3u-dhYmg2Z9MNXQnOnFFj-jMWXNGDGkGG7WIPzVtiaBbdmwvOpRu2sg-MEFNfFM5B64GmQRoxXabOI8kLvjhYszAQ5hy0j5eJW0hSfFqkkWU_aHFiapbaPT0rVE10-7SvMjlsN_C4BptNpHdyXXYQ5MsxlD0TeNrN3eN8a7HMVyFkWbD-9aXJj96KEua9-Iizy)
 
-## Whitebox Overall System {#_whitebox_overall_system}
-
-***\<Overview Diagram>***
-
-Motivation
-
-:   *\<text explanation>*
-
-Contained Building Blocks
-
-:   *\<Description of contained building block (black boxes)>*
-
-Important Interfaces
-
-:   *\<Description of important interfaces>*
-
-### \<Name black box 1> {#__name_black_box_1}
-
-*\<Purpose/Responsibility>*
-
-*\<Interface(s)>*
-
-*\<(Optional) Quality/Performance Characteristics>*
-
-*\<(Optional) Directory/File Location>*
-
-*\<(Optional) Fulfilled Requirements>*
-
-*\<(optional) Open Issues/Problems/Risks>*
-
-### \<Name black box 2> {#__name_black_box_2}
-
-*\<black box template>*
-
-### \<Name black box n> {#__name_black_box_n}
-
-*\<black box template>*
-
-### \<Name interface 1> {#__name_interface_1}
-
-...
-
-### \<Name interface m> {#__name_interface_m}
-
-## Level 2 {#_level_2}
-
-### White Box *\<building block 1>* {#_white_box_emphasis_building_block_1_emphasis}
-
-*\<white box template>*
-
-### White Box *\<building block 2>* {#_white_box_emphasis_building_block_2_emphasis}
-
-*\<white box template>*
-
-...
-
-### White Box *\<building block m>* {#_white_box_emphasis_building_block_m_emphasis}
-
-*\<white box template>*
-
-## Level 3 {#_level_3}
-
-### White Box \<\_building block x.1\_\> {#_white_box_building_block_x_1}
-
-*\<white box template>*
-
-### White Box \<\_building block x.2\_\> {#_white_box_building_block_x_2}
-
-*\<white box template>*
-
-### White Box \<\_building block y.1\_\> {#_white_box_building_block_y_1}
-
-*\<white box template>*
 
 # Runtime View {#section-runtime-view}
 
