@@ -33,9 +33,11 @@ The software is written as the Python package sdf4sim available from [PyPI](http
 ![White Box](http://www.plantuml.com/plantuml/svg/VP1DSiCW38NtEeKka9mXRHRT9xa04ukMAJyU9BoeuUuTcmv3pRHBz3u-dhYmg2Z9MNXQnOnFFj-jMWXNGDGkGG7WIPzVtiaBbdmwvOpRu2sg-MEFNfFM5B64GmQRoxXabOI8kLvjhYszAQ5hy0j5eJW0hSfFqkkWU_aHFiapbaPT0rVE10-7SvMjlsN_C4BptNpHdyXXYQ5MsxlD0TeNrN3eN8a7HMVyFkWbD-9aXJj96KEua9-Iizy)
 
 
-# Runtime View {#section-runtime-view}
+# Runtime View
 
 ## \<Runtime Scenario 1> {#__runtime_scenario_1}
+
+![Execute Until](sdf.png
 
 -   *\<insert runtime diagram or textual description of the scenario>*
 
