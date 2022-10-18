@@ -47,11 +47,6 @@ The procedure calculates a sequential schedule for the SDF graph and runs it. It
 
 <img src="http://www.plantuml.com/plantuml/svg/ROwn2W8n40NxVCMMMdZfFP3xax0aBxgOIq9s3y6lzvGhxQOOc5dKUDYs5lS3Dz31veYkf2bFl5cBhMQvJrbg2bB5X4kmzaJL-PyNkSIji26eh5ze8oHaH3jyJjoDrD19vGsTZoYz7b90fxExtBotLZ2uHWHb4ys2vFsyNxRk5jIqBty0">
 
-# Deployment View
-
-## Python Package
-
-
 # References
 
 <a id="glumac2022">(Glumac 2022)</a> 
