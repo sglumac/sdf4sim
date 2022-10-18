@@ -35,14 +35,13 @@ The software is written as the Python package sdf4sim available from [PyPI](http
 
 # Runtime View
 
-## sdf4sim.sdf.sequential_run
+## *sdf4sim.sdf.sequential_run*
 
 ![Execute Until](sdf.png)
 
--   *\<insert runtime diagram or textual description of the scenario>*
-
--   *\<insert description of the notable aspects of the interactions
-    between the building block instances depicted in this diagram.\>*
+The procedure is used to implement
+* *sdf4sim.cs.execute_until*
+* and subsequently *sdf4sim.cs.execute*
 
 ## \<Runtime Scenario 2> {#__runtime_scenario_2}
 
