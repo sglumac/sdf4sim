@@ -35,7 +35,7 @@ The software is written as the Python package sdf4sim available from [PyPI](http
 
 # Runtime View
 
-## \<Runtime Scenario 1> {#__runtime_scenario_1}
+## sdf4sim.sdf.sequential_run
 
 ![Execute Until](sdf.png)
 
