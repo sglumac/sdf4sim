@@ -30,7 +30,7 @@ The software is written as the Python package sdf4sim available from [PyPI](http
 
 ## Class Relationship Diagram
 
-![White Box](http://www.plantuml.com/plantuml/svg/VP1DSiCW38NtEeKka9mXRHRT9xa04ukMAJyU9BoeuUuTcmv3pRHBz3u-dhYmg2Z9MNXQnOnFFj-jMWXNGDGkGG7WIPzVtiaBbdmwvOpRu2sg-MEFNfFM5B64GmQRoxXabOI8kLvjhYszAQ5hy0j5eJW0hSfFqkkWU_aHFiapbaPT0rVE10-7SvMjlsN_C4BptNpHdyXXYQ5MsxlD0TeNrN3eN8a7HMVyFkWbD-9aXJj96KEua9-Iizy)
+<img src="http://www.plantuml.com/plantuml/svg/VP1DSiCW38NtEeKka9mXRHRT9xa04ukMAJyU9BoeuUuTcmv3pRHBz3u-dhYmg2Z9MNXQnOnFFj-jMWXNGDGkGG7WIPzVtiaBbdmwvOpRu2sg-MEFNfFM5B64GmQRoxXabOI8kLvjhYszAQ5hy0j5eJW0hSfFqkkWU_aHFiapbaPT0rVE10-7SvMjlsN_C4BptNpHdyXXYQ5MsxlD0TeNrN3eN8a7HMVyFkWbD-9aXJj96KEua9-Iizy">
 
 
 # Runtime View
@@ -39,7 +39,7 @@ The software is written as the Python package sdf4sim available from [PyPI](http
 
 <img src="sdf.png" width=50% height=50%>
 
-The procedure is used to implement
+The procedure calculates a sequential schedule for the SDF graph and runs it. It is used to implement
 * *sdf4sim.cs.execute_until*
 * and subsequently *sdf4sim.cs.execute*
 
