@@ -37,7 +37,7 @@ The software is written as the Python package sdf4sim available from [PyPI](http
 
 ## *sdf4sim.sdf.sequential_run*
 
-![Execute Until](sdf.png)
+<img src="sdf.png" width=50% height=50%>
 
 The procedure is used to implement
 * *sdf4sim.cs.execute_until*
