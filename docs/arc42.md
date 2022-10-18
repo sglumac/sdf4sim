@@ -43,81 +43,13 @@ The procedure calculates a sequential schedule for the SDF graph and runs it. It
 * *sdf4sim.cs.execute_until*
 * and subsequently *sdf4sim.cs.execute*
 
-## \<Runtime Scenario 2> {#__runtime_scenario_2}
+## *sdf4sim.sdf.find_configuration*
 
-## ... {#_}
 
-## \<Runtime Scenario n> {#__runtime_scenario_n}
+# Deployment View
 
-# Deployment View {#section-deployment-view}
+## Python Package
 
-## Infrastructure Level 1 {#_infrastructure_level_1}
-
-***\<Overview Diagram>***
-
-Motivation
-
-:   *\<explanation in text form>*
-
-Quality and/or Performance Features
-
-:   *\<explanation in text form>*
-
-Mapping of Building Blocks to Infrastructure
-
-:   *\<description of the mapping>*
-
-## Infrastructure Level 2 {#_infrastructure_level_2}
-
-### *\<Infrastructure Element 1>* {#__emphasis_infrastructure_element_1_emphasis}
-
-*\<diagram + explanation>*
-
-### *\<Infrastructure Element 2>* {#__emphasis_infrastructure_element_2_emphasis}
-
-*\<diagram + explanation>*
-
-...
-
-### *\<Infrastructure Element n>* {#__emphasis_infrastructure_element_n_emphasis}
-
-*\<diagram + explanation>*
-
-# Cross-cutting Concepts {#section-concepts}
-
-## *\<Concept 1>* {#__emphasis_concept_1_emphasis}
-
-*\<explanation>*
-
-## *\<Concept 2>* {#__emphasis_concept_2_emphasis}
-
-*\<explanation>*
-
-...
-
-## *\<Concept n>* {#__emphasis_concept_n_emphasis}
-
-*\<explanation>*
-
-# Architecture Decisions {#section-design-decisions}
-
-# Quality Requirements {#section-quality-scenarios}
-
-## Quality Tree {#_quality_tree}
-
-## Quality Scenarios {#_quality_scenarios}
-
-# Risks and Technical Debts {#section-technical-risks}
-
-# Glossary {#section-glossary}
-
-+-----------------------+-----------------------------------------------+
-| Term                  | Definition                                    |
-+=======================+===============================================+
-| *\<Term-1>*           | *\<definition-1>*                             |
-+-----------------------+-----------------------------------------------+
-| *\<Term-2>*           | *\<definition-2>*                             |
-+-----------------------+-----------------------------------------------+
 
 # References
 
