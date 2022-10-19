@@ -34,16 +34,13 @@ The software is written as the Python package sdf4sim available from [PyPI](http
 
 The diagram shows the relationships between classes in *sdf.cs* and *sdf4sim.sdf*.
 
-<table>
-  <tr>
-    <th>Cosimulation</th>
-    <td><img src="cosimulation.png" width=50% height=50%></td>
-  </tr>
-  <tr>
-    <th>Results</th>
-    <td><img src="results.png" width=50% height=50%></td>
-  </tr>
-</table>
+### Cosimulation
+
+<img src="cosimulation.png" width=50% height=50%>
+
+### Results
+
+<img src="results.png" width=50% height=50%>
 
 # Runtime View
 
