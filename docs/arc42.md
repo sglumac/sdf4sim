@@ -32,7 +32,7 @@ The software is written as the Python package sdf4sim available from [PyPI](http
 
 <img src="http://www.plantuml.com/plantuml/svg/VP5DSi8m38NtEeKk06UWPT5T5y05F45fC_Y7iMGwK-AxTr9rWeWdtJb-pv_UKtOiBai97ZhlcB7ZxT6x6-4T4FjGe0BmkT--V50KhEDcCuuuNRnbT_tybLvBtrF6cXOQJAmX5EyaPHpdfygQr8CJsgTueooK6yCSvK-nE32JJ-b2aR7EhdrYzGqfmk9ROVSds7yUeUjn-2OmvpRFEc9PierjQkizmBn25PjEwZXH3aFKQGPo82vUs41gAshS6AcppvkmJowpu7UIhvGlZp_KIe_ZMeaTnNC9_WS0" width=50% height=50%>
 
-The diagram shows the relationships between classes in *sdf.cs* and *sdf4sim.sdf*.
+The diagram shows the relationships between classes in *sdf.cs* and *sdf4sim.sdf*. Classes *Cosimulation* and *Results* are visualized below from the user's point of view.
 
 ### Cosimulation
 
