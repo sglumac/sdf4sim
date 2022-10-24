@@ -4,7 +4,7 @@ The main goal of this repository is to demonstrate the results of research condu
 
 ## Requirements Overview
 
-A co-simulation network consists of Functional Mock-up Units [(blochwitz2000)](#blochwitz2000). The repository demonstrates how to automatically configure and simulate a co-simulation network for a given tolerance.
+A co-simulation network consists of Functional Mock-up Units [(blochwitz2000)](#blochwitz2000). The repository demonstrates how to automatically configure and simulate a co-simulation network for a given tolerance with an algorithm presented in [(Glumac 2022)](#glumac2022).
 
 ## Quality Goals
 
